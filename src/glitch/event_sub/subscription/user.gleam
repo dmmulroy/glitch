@@ -1,9 +1,5 @@
 import gleam/result
 
-// "user.authorization.grant" => 1,
-// "user.authorization.revoke" => 1,
-// "user.update" => 1
-
 pub type User {
   Update
   Authorization(Authorization)
@@ -25,14 +21,10 @@ pub fn from_string(str: String) -> Result(User, InvalidUserSubscription) {
 
 pub fn to_string(user: User) -> String {
   case user {
-    Update -> "update"
+    Update -> "user.update"
     Authorization(authorization) -> authorization_to_string(authorization)
   }
 }
-
-// pub fn of_json(_json: String) -> User {
-//   todo
-// }
 
 pub type Authorization {
   Grant
@@ -41,8 +33,8 @@ pub type Authorization {
 
 pub fn authorization_to_string(authorization: Authorization) -> String {
   case authorization {
-    Grant -> "grant"
-    Revoke -> "revoke"
+    Grant -> "user.authorization.grant"
+    Revoke -> "user.authorization.revoke"
   }
 }
 

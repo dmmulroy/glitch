@@ -1,6 +1,8 @@
 import gleam/int
 import gleam/result
-import glitch/subscription/user.{type InvalidUserSubscription, type User}
+import glitch/event_sub/subscription/user.{
+  type InvalidUserSubscription, type User,
+}
 
 pub type Subscription {
   Subscription(name: Name, version: Version, condition: Condition)
@@ -27,6 +29,10 @@ pub fn name_from_string(str: String) -> Result(Name, InvalidName) {
   |> result.map_error(InvalidUser)
 }
 
+pub type Condition {
+  Condition
+}
+
 pub type Version {
   Int(Int)
   Beta
@@ -34,10 +40,6 @@ pub type Version {
 
 pub type InvalidVersion {
   InvalidVersion(String)
-}
-
-pub type Condition {
-  Condition
 }
 
 pub fn version_to_string(version: Version) -> String {

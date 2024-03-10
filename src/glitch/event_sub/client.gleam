@@ -1,6 +1,6 @@
 import gleam/uri.{type Uri}
 import gleam/option.{type Option}
-import glitch/subscription.{type Subscription}
+import glitch/event_sub/subscription.{type Subscription}
 
 // * `:client_id` - Twitch app client id.
 // * `:access_token` - Twitch app access token with required scopes for the
