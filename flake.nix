@@ -15,7 +15,7 @@
       {
         devShells = {
           default = pkgs.mkShell {
-            buildInputs = with inputs'.nixpkgs_master.legacyPackages; [gleam erlang_26];
+            buildInputs = with inputs'.nixpkgs_master.legacyPackages; [gleam erlang_26 rebar3];
           };
         };
       };
