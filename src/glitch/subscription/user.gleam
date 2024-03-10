@@ -13,12 +13,12 @@ pub type InvalidUserSubscription {
   InvalidUserSubscription
 }
 
-pub fn of_string(str: String) -> Result(User, InvalidUserSubscription) {
+pub fn from_string(str: String) -> Result(User, InvalidUserSubscription) {
   case str {
     "user.update" -> Ok(Update)
     _ ->
       str
-      |> authorization_of_string
+      |> authorization_from_string
       |> result.map(Authorization)
   }
 }
@@ -46,7 +46,7 @@ pub fn authorization_to_string(authorization: Authorization) -> String {
   }
 }
 
-pub fn authorization_of_string(
+pub fn authorization_from_string(
   str: String,
 ) -> Result(Authorization, InvalidUserSubscription) {
   case str {
