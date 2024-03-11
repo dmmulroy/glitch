@@ -1,10 +1,12 @@
 import gleam/list
 import gleam/pair
 import gleam/option.{type Option, None, Some}
-import gleam/http.{type Header, type Method, Get, Https}
+import gleam/uri
+import gleam/http.{type Header, type Method, Get}
 import gleam/http/request.{type Request as HttpRequest, Request as HttpRequest}
-// import gleam/http/response.{type Response}
 import gleam/httpc
+import glitch/api/json.{type Json}
+import glitch/extended/request_ext
 
 const base_url = "https://api.twitch.tv/helix"
 
@@ -39,10 +41,10 @@ pub fn headers(client: Client) -> List(Header) {
 
 pub type Request {
   Request(
-    body: Option(String),
+    body: Option(Json),
     headers: Option(List(Header)),
     path: String,
-    query: Option(String),
+    query: Option(List(#(String, String))),
   )
 }
 
@@ -64,23 +66,36 @@ fn merge_headers(
 fn to_http_request(
   client: Client,
   method: Method,
-  request: Request,
+  req: Request,
 ) -> HttpRequest(String) {
   let headers =
     client
     |> headers
-    |> merge_headers(request.headers)
+    |> merge_headers(req.headers)
 
-  HttpRequest(
-    method,
-    headers,
-    option.unwrap(request.body, ""),
-    Https,
-    base_url,
-    None,
-    request.path,
-    request.query,
-  )
+  let body =
+    req.body
+    |> option.map(json.to_string)
+    |> option.unwrap("")
+
+  let query =
+    option.map(req.query, fn(params) {
+      list.map(params, fn(param) {
+        let key = pair.first(param)
+        let value = pair.second(param)
+
+        #(uri.percent_encode(key), uri.percent_encode(value))
+      })
+    })
+    |> option.unwrap([])
+
+  request.new()
+  |> request.set_method(method)
+  |> request_ext.set_headers(headers)
+  |> request.set_body(body)
+  |> request.set_host(base_url)
+  |> request.set_path(req.path)
+  |> request.set_query(query)
 }
 
 pub fn get(client: Client, request: Request) {

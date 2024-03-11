@@ -1,12 +1,10 @@
 import gleam/dynamic.{type Decoder, type Dynamic}
-import gleam/function
-import gleam/list
-import gleam/option.{type Option}
-import gleam/result
+import gleam/option.{type Option, None, Some}
 import gleam/uri.{type Uri}
-import gleam/http/request
-import glitch/api/json.{type DecodeError, type Json}
-import glitch/api/client.{type Client}
+import gleam/json.{type DecodeError} as _
+import glitch/api/json.{type Json}
+import glitch/api/client.{type Client, Request}
+import glitch/extended/dynamic_ext
 
 pub type User {
   User(
@@ -21,6 +19,23 @@ pub type User {
     view_count: Int,
     email: Option(String),
     created_at: String,
+  )
+}
+
+fn decoder() {
+  json.decode11(
+    User,
+    dynamic.field("id", dynamic.string),
+    dynamic.field("login", dynamic.string),
+    dynamic.field("display_name", dynamic.string),
+    dynamic.field("type", dynamic.string),
+    dynamic.field("broadcaster_type", dynamic.string),
+    dynamic.field("description", dynamic.string),
+    dynamic.field("profile_image_url", dynamic_ext.uri),
+    dynamic.field("offline_image_url", dynamic_ext.uri),
+    dynamic.field("view_count", dynamic.int),
+    dynamic.field("email", dynamic.optional(dynamic.string)),
+    dynamic.field("created_at", dynamic.string),
   )
 }
 
@@ -40,55 +55,8 @@ pub fn to_json(user: User) -> Json {
   ])
 }
 
-fn decoder() {
-  fn(dyn: Dynamic) {
-    fn() {
-      use id <- result.try(json.decode_string_field(dyn, "id"))
-      use login <- result.try(json.decode_string_field(dyn, "login"))
-      use display_name <- result.try(json.decode_string_field(
-        dyn,
-        "display_name",
-      ))
-      use user_type <- result.try(json.decode_string_field(dyn, "type"))
-      use broadcaster_type <- result.try(json.decode_string_field(
-        dyn,
-        "broadcaster_type",
-      ))
-      use description <- result.try(json.decode_string_field(dyn, "description"))
-      use profile_image_url <- result.try(json.decode_uri_field(
-        dyn,
-        "profile_image_url",
-      ))
-      use offline_image_url <- result.try(json.decode_uri_field(
-        dyn,
-        "offline_image_url",
-      ))
-      use view_count <- result.try(json.decode_int_field(dyn, "view_count"))
-      let email =
-        json.decode_string_field(dyn, "email")
-        |> option.from_result
-      use created_at <- result.try(json.decode_string_field(dyn, "created_at"))
-
-      Ok(User(
-        id,
-        login,
-        display_name,
-        user_type,
-        broadcaster_type,
-        description,
-        profile_image_url,
-        offline_image_url,
-        view_count,
-        email,
-        created_at,
-      ))
-    }()
-    |> result.map_error(fn(_error) { [] })
-  }
-}
-
-pub fn of_json(str: String) {
-  json.decode(str, decoder())
+pub fn of_json(json_string: String) -> Result(User, DecodeError) {
+  json.decode(json_string, decoder())
 }
 
 pub type Type =
@@ -104,7 +72,18 @@ pub type GetUsersRequest {
   )
 }
 
-// Nil -> Result(List(Users), idk_lol)
+pub fn query_params_from_get_users_request(
+  req: GetUsersRequest,
+) -> Option(List(#(String, String))) {
+  todo
+}
+
+pub type GetUsersError {
+  DecodeError(DecodeError)
+  RequestError
+}
+
 pub fn get_users(client: Client, request: GetUsersRequest) {
-  request.to("https://foobar.com")
+  client
+  |> client.get(Request(body: None, headers: None, path: "users", query: None))
 }
