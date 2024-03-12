@@ -1,7 +1,10 @@
 import gleam/dynamic
+import gleam/list
 import gleam/option.{type Option, None, Some}
+import gleam/result
 import gleam/uri.{type Uri}
 import gleam/json.{type DecodeError, type Json}
+import gleam/http/response.{type Response}
 import glitch/api/client.{type Client, Request}
 import glitch/extended/dynamic_ext
 import glitch/extended/json_ext
@@ -75,7 +78,26 @@ pub type GetUsersRequest {
 pub fn query_params_from_get_users_request(
   req: GetUsersRequest,
 ) -> Option(List(#(String, String))) {
-  todo
+  let to_query_param_list = fn(list: Option(List(String))) -> List(
+    #(String, String),
+  ) {
+    list
+    |> option.map(fn(values) {
+      values
+      |> list.map(fn(value) { #("user_id", value) })
+    })
+    |> option.unwrap([])
+  }
+
+  [req.user_ids, req.user_logins]
+  |> list.map(to_query_param_list)
+  |> list.flatten
+  |> fn(list) {
+    case list {
+      [] -> None
+      query_params -> Some(query_params)
+    }
+  }
 }
 
 pub type GetUsersError {
@@ -83,7 +105,16 @@ pub type GetUsersError {
   RequestError
 }
 
-pub fn get_users(client: Client, request: GetUsersRequest) {
+pub fn get_users(
+  client: Client,
+  request: GetUsersRequest,
+) -> Result(Response(String), GetUsersError) {
   client
-  |> client.get(Request(body: None, headers: None, path: "users", query: None))
+  |> client.get(Request(
+    body: None,
+    headers: None,
+    path: "users",
+    query: query_params_from_get_users_request(request),
+  ))
+  |> result.replace_error(RequestError)
 }
