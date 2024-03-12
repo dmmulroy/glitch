@@ -12,7 +12,7 @@ packages = [
 ]
 
 [requirements]
-gleam_http = { version = "~> 3.5"}
+gleam_http = { version = "~> 3.5" }
 gleam_httpc = { version = "~> 2.1" }
 gleam_json = { version = "~> 1.0" }
 gleam_stdlib = { version = "~> 0.34 or ~> 1.0" }

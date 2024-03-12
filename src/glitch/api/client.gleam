@@ -5,7 +5,7 @@ import gleam/uri
 import gleam/http.{type Header, type Method, Get}
 import gleam/http/request.{type Request as HttpRequest, Request as HttpRequest}
 import gleam/httpc
-import glitch/api/json.{type Json}
+import gleam/json.{type Json}
 import glitch/extended/request_ext
 
 const base_url = "https://api.twitch.tv/helix"

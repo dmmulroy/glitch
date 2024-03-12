@@ -1,10 +1,10 @@
-import gleam/dynamic.{type Decoder, type Dynamic}
+import gleam/dynamic
 import gleam/option.{type Option, None, Some}
 import gleam/uri.{type Uri}
-import gleam/json.{type DecodeError} as _
-import glitch/api/json.{type Json}
+import gleam/json.{type DecodeError, type Json}
 import glitch/api/client.{type Client, Request}
 import glitch/extended/dynamic_ext
+import glitch/extended/json_ext
 
 pub type User {
   User(
@@ -23,7 +23,7 @@ pub type User {
 }
 
 fn decoder() {
-  json.decode11(
+  dynamic_ext.decode11(
     User,
     dynamic.field("id", dynamic.string),
     dynamic.field("login", dynamic.string),
@@ -47,10 +47,10 @@ pub fn to_json(user: User) -> Json {
     #("type", json.string(user.user_type)),
     #("broadcaster_type", json.string(user.broadcaster_type)),
     #("description", json.string(user.description)),
-    #("profile_image_url", json.uri(user.profile_image_url)),
-    #("offline_image_url", json.uri(user.offline_image_url)),
+    #("profile_image_url", json_ext.uri(user.profile_image_url)),
+    #("offline_image_url", json_ext.uri(user.offline_image_url)),
     #("view_count", json.int(user.view_count)),
-    #("email", json.option(user.email, json.string)),
+    #("email", json_ext.option(user.email, json.string)),
     #("created_at", json.string(user.created_at)),
   ])
 }
