@@ -78,18 +78,18 @@ pub type GetUsersRequest {
 pub fn query_params_from_get_users_request(
   req: GetUsersRequest,
 ) -> Option(List(#(String, String))) {
-  let to_query_param_list = fn(list: Option(List(String))) -> List(
+  let to_query_param_list = fn(input: #(String, Option(List(String)))) -> List(
     #(String, String),
   ) {
-    list
+    input.1
     |> option.map(fn(values) {
       values
-      |> list.map(fn(value) { #("user_id", value) })
+      |> list.map(fn(value) { #(input.0, value) })
     })
     |> option.unwrap([])
   }
 
-  [req.user_ids, req.user_logins]
+  [#("id", req.user_ids), #("login", req.user_logins)]
   |> list.map(to_query_param_list)
   |> list.flatten
   |> fn(list) {
