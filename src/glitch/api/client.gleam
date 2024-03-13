@@ -2,13 +2,13 @@ import gleam/list
 import gleam/pair
 import gleam/option.{type Option, None, Some}
 import gleam/uri
-import gleam/http.{type Header, type Method, Get}
+import gleam/http.{type Header, type Method, Get, Https}
 import gleam/http/request.{type Request as HttpRequest, Request as HttpRequest}
 import gleam/httpc
 import gleam/json.{type Json}
 import glitch/extended/request_ext
 
-const base_url = "https://api.twitch.tv/helix"
+const host = "api.twitch.tv/helix"
 
 pub opaque type Client {
   Client(options: Options)
@@ -34,9 +34,9 @@ pub fn access_token(client: Client) -> String {
 
 pub fn headers(client: Client) -> List(Header) {
   let client_id = client_id(client)
-  let access_token = access_token(client)
+  let access_token = "Bearer " <> access_token(client)
 
-  [#("client_id", client_id), #("access_token", access_token)]
+  [#("Client-Id", client_id), #("Authorization", access_token)]
 }
 
 pub type Request {
@@ -92,8 +92,9 @@ fn to_http_request(
   request.new()
   |> request.set_method(method)
   |> request_ext.set_headers(headers)
+  |> request.set_scheme(Https)
+  |> request.set_host(host)
   |> request.set_body(body)
-  |> request.set_host(base_url)
   |> request.set_path(req.path)
   |> request.set_query(query)
 }

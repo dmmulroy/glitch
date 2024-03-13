@@ -1,4 +1,4 @@
-import gleam/dynamic
+import gleam/dynamic.{type Dynamic}
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
@@ -102,7 +102,7 @@ pub fn query_params_from_get_users_request(
 
 pub type GetUsersError {
   DecodeError(DecodeError)
-  RequestError
+  RequestError(Dynamic)
 }
 
 pub fn get_users(
@@ -116,5 +116,5 @@ pub fn get_users(
     path: "users",
     query: query_params_from_get_users_request(request),
   ))
-  |> result.replace_error(RequestError)
+  |> result.map_error(RequestError)
 }
