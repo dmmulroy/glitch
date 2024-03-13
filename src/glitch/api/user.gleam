@@ -102,19 +102,23 @@ pub fn query_params_from_get_users_request(
 
 pub type GetUsersError {
   DecodeError(DecodeError)
-  RequestError(Dynamic)
+  RequestError
 }
 
+// TODO: Deserialization is probably not working because the response is a list
 pub fn get_users(
   client: Client,
   request: GetUsersRequest,
-) -> Result(Response(String), GetUsersError) {
+) -> Result(Response(User), GetUsersError) {
   client
-  |> client.get(Request(
-    body: None,
-    headers: None,
-    path: "users",
-    query: query_params_from_get_users_request(request),
-  ))
-  |> result.map_error(RequestError)
+  |> client.get(
+    Request(
+      body: None,
+      headers: None,
+      path: "users",
+      query: query_params_from_get_users_request(request),
+    ),
+    of_json,
+  )
+  |> result.replace_error(RequestError)
 }

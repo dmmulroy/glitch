@@ -1,11 +1,14 @@
 import gleam/list
 import gleam/pair
 import gleam/option.{type Option, None, Some}
+import gleam/result
 import gleam/uri
 import gleam/http.{type Header, type Method, Get, Https}
 import gleam/http/request.{type Request as HttpRequest, Request as HttpRequest}
+import gleam/http/response.{type Response}
 import gleam/httpc
 import gleam/json.{type Json}
+import glitch/extended/json_ext.{type JsonDecoder}
 import glitch/extended/request_ext
 
 const host = "api.twitch.tv/helix"
@@ -99,8 +102,19 @@ fn to_http_request(
   |> request.set_query(query)
 }
 
-pub fn get(client: Client, request: Request) {
-  client
-  |> to_http_request(Get, request)
-  |> httpc.send
+pub fn get(
+  client: Client,
+  request: Request,
+  decoder: JsonDecoder(String, output),
+) -> Result(Response(output), ApiError) {
+  use response <- result.try(
+    client
+    |> to_http_request(Get, request)
+    |> httpc.send
+    |> result.replace_error(RequestError),
+  )
+
+  response
+  |> response.try_map(decoder)
+  |> result.replace_error(RequestError)
 }
