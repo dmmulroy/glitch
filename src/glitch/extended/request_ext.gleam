@@ -1,4 +1,5 @@
 import gleam/list
+import gleam/option.{type Option}
 import gleam/string
 import gleam/http/request.{type Request, Request}
 
@@ -15,4 +16,11 @@ pub fn set_headers(
       list.key_set(acc, string.lowercase(header.0), header.1)
     })
   Request(..request, headers: new_headers)
+}
+
+pub fn set_query_string(
+  request: Request(body),
+  query: Option(String),
+) -> Request(body) {
+  Request(..request, query: query)
 }
