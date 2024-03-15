@@ -14,7 +14,7 @@ packages = [
 ]
 
 [requirements]
-dot_env = { version = "~> 0.2"}
+dot_env = { version = "~> 0.2" }
 gleam_http = { version = "~> 3.5" }
 gleam_httpc = { version = "~> 2.1" }
 gleam_json = { version = "~> 1.0" }
