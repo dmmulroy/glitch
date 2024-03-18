@@ -1,14 +1,12 @@
 import gleam/dynamic.{type Dynamic}
 import gleam/list
 import gleam/pair
-import gleam/http.{type Header, type Method, Get, Https}
-import gleam/http/request.{type Request}
+import gleam/http.{type Header, Get}
+import gleam/http/request.{type Request, Request}
 import gleam/http/response.{type Response}
 import gleam/httpc
 import gleam/json.{type Json}
-import glitch/extended/request_ext
-
-const host = "api.twitch.tv/helix"
+import glitch/api/api_request
 
 pub opaque type Client {
   Client(options: Options)
@@ -50,35 +48,16 @@ fn merge_headers(
   })
 }
 
-fn prepare_request(
+pub fn get(
   client: Client,
-  method: Method,
   request: Request(Json),
-) -> Request(String) {
+) -> Result(Response(String), Dynamic) {
   let headers =
     client
     |> headers
     |> merge_headers(request.headers)
 
-  let body =
-    request.body
-    |> json.to_string
-
-  request.new()
-  |> request.set_method(method)
-  |> request_ext.set_headers(headers)
-  |> request.set_scheme(Https)
-  |> request.set_host(host)
-  |> request.set_body(body)
-  |> request.set_path(request.path)
-  |> request_ext.set_query_string(request.query)
-}
-
-pub fn get(
-  client: Client,
-  request: Request(Json),
-) -> Result(Response(String), Dynamic) {
-  client
-  |> prepare_request(Get, request)
+  Request(..request, method: Get, headers: headers)
+  |> api_request.from_request
   |> httpc.send
 }

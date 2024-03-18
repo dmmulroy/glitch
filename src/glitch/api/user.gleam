@@ -8,8 +8,8 @@ import gleam/http/request
 import gleam/http/response.{type Response}
 import glitch/api/client.{type Client}
 import glitch/extended/dynamic_ext
-import glitch/extended/function_ext
 import glitch/extended/json_ext
+import glitch/api/api_response
 
 pub type User {
   User(
@@ -39,7 +39,7 @@ fn decoder() -> Decoder(User) {
     dynamic.field("profile_image_url", dynamic_ext.uri),
     dynamic.field("offline_image_url", dynamic_ext.uri),
     dynamic.field("view_count", dynamic.int),
-    dynamic.field("email", dynamic.optional(dynamic.string)),
+    dynamic.optional_field("email", dynamic.string),
     dynamic.field("created_at", dynamic.string),
   )
 }
@@ -101,37 +101,6 @@ pub type GetUsersError {
   RequestError
 }
 
-pub type TwitchApiResponse(data) {
-  TwitchApiResponse(data: List(data))
-}
-
-fn twitch_api_response_decoder(
-  of data_decoder: Decoder(data),
-) -> Decoder(TwitchApiResponse(data)) {
-  dynamic.decode1(
-    TwitchApiResponse,
-    dynamic.field("data", dynamic.list(of: data_decoder)),
-  )
-}
-
-fn twitch_api_response_from_json(
-  json_string: String,
-  of data_decoder: Decoder(data),
-) {
-  json.decode(json_string, twitch_api_response_decoder(data_decoder))
-}
-
-fn twitch_api_response_data(api_response: TwitchApiResponse(data)) -> List(data) {
-  api_response.data
-}
-
-fn twitch_api_response_from_response(
-  response: Response(TwitchApiResponse(data)),
-) -> Result(Response(List(data)), error) {
-  response
-  |> response.try_map(function_ext.compose(twitch_api_response_data, Ok))
-}
-
 pub fn get_users(
   client: Client,
   request: GetUsersRequest,
@@ -149,7 +118,7 @@ pub fn get_users(
   )
 
   response
-  |> response.try_map(twitch_api_response_from_json(_, of: decoder()))
-  |> result.try(twitch_api_response_from_response)
+  |> response.try_map(api_response.from_json(_, of: decoder()))
+  |> result.try(api_response.get_data_from_response)
   |> result.map_error(DecodeError)
 }

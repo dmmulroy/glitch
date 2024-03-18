@@ -1,7 +1,7 @@
-import gleam/io
 import gleam/option.{None, Some}
 import gleam/result
 import dot_env/env
+import pprint
 import glitch/api/client.{Options}
 import glitch/api/user.{GetUsersRequest}
 
@@ -16,6 +16,6 @@ pub fn main() {
 
   let result = user.get_users(client, get_users_request)
 
-  io.debug(result)
+  pprint.debug(result)
   Ok(Nil)
 }
