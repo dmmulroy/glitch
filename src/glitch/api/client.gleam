@@ -1,7 +1,7 @@
 import gleam/dynamic.{type Dynamic}
 import gleam/list
 import gleam/pair
-import gleam/http.{type Header, Get}
+import gleam/http.{type Header, Get, Post}
 import gleam/http/request.{type Request, Request}
 import gleam/http/response.{type Response}
 import gleam/httpc
@@ -58,6 +58,20 @@ pub fn get(
     |> merge_headers(request.headers)
 
   Request(..request, method: Get, headers: headers)
+  |> api_request.from_request
+  |> httpc.send
+}
+
+pub fn post(
+  client: Client,
+  request: Request(Json),
+) -> Result(Response(String), Dynamic) {
+  let headers =
+    client
+    |> headers
+    |> merge_headers(request.headers)
+
+  Request(..request, method: Post, headers: headers)
   |> api_request.from_request
   |> httpc.send
 }
