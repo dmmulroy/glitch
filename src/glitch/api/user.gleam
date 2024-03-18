@@ -1,4 +1,4 @@
-import gleam/dynamic
+import gleam/dynamic.{type Decoder}
 import gleam/list
 import gleam/option.{type Option}
 import gleam/result
@@ -8,6 +8,7 @@ import gleam/http/request
 import gleam/http/response.{type Response}
 import glitch/api/client.{type Client}
 import glitch/extended/dynamic_ext
+import glitch/extended/function_ext
 import glitch/extended/json_ext
 
 pub type User {
@@ -26,7 +27,7 @@ pub type User {
   )
 }
 
-fn decoder() {
+fn decoder() -> Decoder(User) {
   dynamic_ext.decode11(
     User,
     dynamic.field("id", dynamic.string),
@@ -59,7 +60,7 @@ pub fn to_json(user: User) -> Json {
   ])
 }
 
-pub fn of_json(json_string: String) -> Result(User, DecodeError) {
+pub fn from_json(json_string: String) -> Result(User, DecodeError) {
   json.decode(json_string, decoder())
 }
 
@@ -100,24 +101,55 @@ pub type GetUsersError {
   RequestError
 }
 
-// TODO: Deserialization is probably not working because the response is a list
+pub type TwitchApiResponse(data) {
+  TwitchApiResponse(data: List(data))
+}
+
+fn twitch_api_response_decoder(
+  of data_decoder: Decoder(data),
+) -> Decoder(TwitchApiResponse(data)) {
+  dynamic.decode1(
+    TwitchApiResponse,
+    dynamic.field("data", dynamic.list(of: data_decoder)),
+  )
+}
+
+fn twitch_api_response_from_json(
+  json_string: String,
+  of data_decoder: Decoder(data),
+) {
+  json.decode(json_string, twitch_api_response_decoder(data_decoder))
+}
+
+fn twitch_api_response_data(api_response: TwitchApiResponse(data)) -> List(data) {
+  api_response.data
+}
+
+fn twitch_api_response_from_response(
+  response: Response(TwitchApiResponse(data)),
+) -> Result(Response(List(data)), error) {
+  response
+  |> response.try_map(function_ext.compose(twitch_api_response_data, Ok))
+}
+
 pub fn get_users(
   client: Client,
   request: GetUsersRequest,
-) -> Result(Response(User), GetUsersError) {
+) -> Result(Response(List(User)), GetUsersError) {
   let request =
     request.new()
     |> request.set_body(json.string(""))
     |> request.set_query(query_params_from_get_users_request(request))
     |> request.set_path("users")
 
-  use response: Response(String) <- result.try(
+  use response <- result.try(
     client
     |> client.get(request)
     |> result.replace_error(RequestError),
   )
 
   response
-  |> response.try_map(of_json)
+  |> response.try_map(twitch_api_response_from_json(_, of: decoder()))
+  |> result.try(twitch_api_response_from_response)
   |> result.map_error(DecodeError)
 }

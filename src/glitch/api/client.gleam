@@ -39,15 +39,6 @@ pub fn headers(client: Client) -> List(Header) {
   [#("Client-Id", client_id), #("Authorization", access_token)]
 }
 
-// pub type Request {
-//   Request(
-//     body: Option(Json),
-//     headers: Option(List(Header)),
-//     path: String,
-//     query: Option(List(#(String, String))),
-//   )
-// }
-
 fn merge_headers(
   base_headers: List(Header),
   new_headers: List(Header),
