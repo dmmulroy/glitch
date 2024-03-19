@@ -13,6 +13,8 @@ import glitch/event_sub/subscription.{type Subscription}
 // TODOS:
 // - Find a WS client for Gleam
 
+// TODO: Wednesday 
+// https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/#channel-subscriptions
 pub type Options {
   Options(
     client_id: String,
