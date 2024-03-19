@@ -1,4 +1,5 @@
 import gleam/dynamic.{type Dynamic}
+import gleam/io
 import gleam/list
 import gleam/pair
 import gleam/http.{type Header, Get, Post}
@@ -34,7 +35,11 @@ pub fn headers(client: Client) -> List(Header) {
   let client_id = client_id(client)
   let access_token = "Bearer " <> access_token(client)
 
-  [#("Client-Id", client_id), #("Authorization", access_token)]
+  [
+    #("Authorization", access_token),
+    #("Client-Id", client_id),
+    #("content-type", "application/json"),
+  ]
 }
 
 fn merge_headers(

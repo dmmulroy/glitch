@@ -14,12 +14,12 @@ pub fn main() {
   let client_options = Options(client_id: client_id, access_token: access_token)
   let client = client.new(client_options)
 
-  let get_users_request =
-    GetUsersRequest(user_ids: None, user_logins: Some(["dmmulroy"]))
-
-  let result = user.get_users(client, get_users_request)
-
-  pprint.debug(result)
+  // let get_users_request =
+  //   GetUsersRequest(user_ids: None, user_logins: Some(["dmmulroy"]))
+  //
+  // let result = user.get_users(client, get_users_request)
+  //
+  // pprint.debug(result)
 
   let send_message_request =
     SendMessageRequest(

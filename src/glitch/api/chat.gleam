@@ -1,4 +1,5 @@
 import gleam/dynamic.{type Decoder}
+import gleam/io
 import gleam/option.{type Option}
 import gleam/result
 import gleam/json.{type DecodeError, type Json}
@@ -38,11 +39,11 @@ fn send_message_request_to_json(request: SendMessageRequest) -> Json {
     #("broadcaster_id", json.string(request.broadcaster_id)),
     #("sender_id", json.string(request.sender_id)),
     #("message", json.string(request.message)),
-    #(
-      "reply_parent_message_id",
-      json_ext.option(request.reply_parent_message_id, json.string),
-    ),
   ])
+  // #(
+  //   "reply_parent_message_id",
+  //   json_ext.option(request.reply_parent_message_id, json.string),
+  // ),
 }
 
 pub type SendMessageError {
@@ -54,6 +55,8 @@ pub fn send_message(
   client: Client,
   request: SendMessageRequest,
 ) -> Result(Response(List(Message)), SendMessageError) {
+  let body = send_message_request_to_json(request)
+  io.println(json.to_string(body))
   let request =
     request.new()
     |> request.set_body(send_message_request_to_json(request))
@@ -66,7 +69,7 @@ pub fn send_message(
   )
 
   response
-  |> response.try_map(api_response.from_json(_, of: message_decoder()))
+  |> response.try_map(api_response.from_json(_, message_decoder()))
   |> result.try(api_response.get_data_from_response)
   |> result.map_error(DecodeError)
 }

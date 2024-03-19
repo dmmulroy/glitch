@@ -118,7 +118,7 @@ pub fn get_users(
   )
 
   response
-  |> response.try_map(api_response.from_json(_, of: decoder()))
+  |> response.try_map(api_response.from_json(_, decoder()))
   |> result.try(api_response.get_data_from_response)
   |> result.map_error(DecodeError)
 }
