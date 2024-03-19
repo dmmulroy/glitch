@@ -1,5 +1,4 @@
 import gleam/dynamic.{type Dynamic}
-import gleam/io
 import gleam/list
 import gleam/pair
 import gleam/http.{type Header, Get, Post}
@@ -8,6 +7,7 @@ import gleam/http/response.{type Response}
 import gleam/httpc
 import gleam/json.{type Json}
 import glitch/api/api_request
+import glitch/extended/request_ext
 
 pub opaque type Client {
   Client(options: Options)
@@ -62,7 +62,9 @@ pub fn get(
     |> headers
     |> merge_headers(request.headers)
 
-  Request(..request, method: Get, headers: headers)
+  request
+  |> request.set_method(Get)
+  |> request_ext.set_headers(headers)
   |> api_request.from_request
   |> httpc.send
 }

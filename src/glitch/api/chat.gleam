@@ -6,8 +6,8 @@ import gleam/json.{type DecodeError, type Json}
 import gleam/http/response.{type Response}
 import gleam/http/request
 import glitch/api/client.{type Client}
-import glitch/extended/json_ext
 import glitch/api/api_response
+import glitch/extended/json_ext
 
 pub type Message {
   Message(message_id: String, is_sent: Bool)
@@ -39,11 +39,11 @@ fn send_message_request_to_json(request: SendMessageRequest) -> Json {
     #("broadcaster_id", json.string(request.broadcaster_id)),
     #("sender_id", json.string(request.sender_id)),
     #("message", json.string(request.message)),
+    #(
+      "reply_parent_message_id",
+      json_ext.option(request.reply_parent_message_id, json.string),
+    ),
   ])
-  // #(
-  //   "reply_parent_message_id",
-  //   json_ext.option(request.reply_parent_message_id, json.string),
-  // ),
 }
 
 pub type SendMessageError {
