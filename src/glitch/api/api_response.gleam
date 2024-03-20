@@ -1,32 +1,83 @@
 import gleam/dynamic.{type Decoder}
-import gleam/io
 import gleam/json
-import gleam/http/response.{type Response}
-import glitch/extended/function_ext
-
-pub type TwitchApiResponse(data) {
-  TwitchApiResponse(data: List(data))
+import gleam/result
+import gleam/http/response.{type Response, Response}
+import glitch/api/error.{
+  type TwitchApiError, InvalidResponseType, ResponseDecodeError,
 }
 
-fn decoder(data_decoder: Decoder(data)) -> Decoder(TwitchApiResponse(data)) {
+pub type TwitchApiResponse(data) {
+  TwitchApiResponse(data: data)
+  TwitchApiListResponse(data: List(data))
+}
+
+fn twitch_api_response_decoder(
+  data_decoder: Decoder(data),
+) -> Decoder(TwitchApiResponse(data)) {
+  dynamic.decode1(TwitchApiResponse, data_decoder)
+}
+
+fn twitch_api_list_response_decoder(
+  data_decoder: Decoder(data),
+) -> Decoder(TwitchApiResponse(data)) {
   dynamic.decode1(
-    TwitchApiResponse,
+    TwitchApiListResponse,
     dynamic.field("data", dynamic.list(of: data_decoder)),
   )
 }
 
-pub fn from_json(json_string: String, data_decoder: Decoder(data)) {
-  io.println(json_string)
-  json.decode(json_string, decoder(data_decoder))
+fn decoder(data_decoder: Decoder(data)) -> Decoder(TwitchApiResponse(data)) {
+  dynamic.any([
+    twitch_api_response_decoder(data_decoder),
+    twitch_api_list_response_decoder(data_decoder),
+  ])
 }
 
-pub fn get_data(api_response: TwitchApiResponse(data)) -> List(data) {
-  api_response.data
+pub fn from_json(
+  json_string: String,
+  data_decoder: Decoder(data),
+) -> Result(TwitchApiResponse(data), TwitchApiError) {
+  json_string
+  |> json.decode(decoder(data_decoder))
+  |> result.map_error(ResponseDecodeError)
+}
+
+fn get_data(
+  api_response: TwitchApiResponse(data),
+) -> Result(data, TwitchApiError) {
+  case api_response {
+    TwitchApiResponse(data) -> Ok(data)
+    _ ->
+      Error(InvalidResponseType(
+        wanted: "TwitchApiResponse",
+        found: "TwitchApiListResponse",
+      ))
+  }
+}
+
+fn get_list_data(
+  api_response: TwitchApiResponse(data),
+) -> Result(List(data), TwitchApiError) {
+  case api_response {
+    TwitchApiListResponse(data) -> Ok(data)
+    _ ->
+      Error(InvalidResponseType(
+        wanted: "TwitchApiListResponse",
+        found: "TwitchApiResponse",
+      ))
+  }
 }
 
 pub fn get_data_from_response(
   response: Response(TwitchApiResponse(data)),
-) -> Result(Response(List(data)), error) {
-  response
-  |> response.try_map(function_ext.compose(get_data, Ok))
+) -> Result(data, TwitchApiError) {
+  use data <- result.try(response.try_map(response, get_data))
+  Ok(data.body)
+}
+
+pub fn get_list_data_from_response(
+  response: Response(TwitchApiResponse(data)),
+) -> Result(List(data), TwitchApiError) {
+  use data <- result.try(response.try_map(response, get_list_data))
+  Ok(data.body)
 }

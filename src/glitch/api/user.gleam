@@ -5,11 +5,12 @@ import gleam/result
 import gleam/uri.{type Uri}
 import gleam/json.{type DecodeError, type Json}
 import gleam/http/request
-import gleam/http/response.{type Response}
+import gleam/http/response
 import glitch/api/client.{type Client}
 import glitch/extended/dynamic_ext
 import glitch/extended/json_ext
 import glitch/api/api_response
+import glitch/api/error.{type TwitchApiError}
 
 pub type User {
   User(
@@ -96,29 +97,19 @@ pub fn query_params_from_get_users_request(
   |> list.flatten
 }
 
-pub type GetUsersError {
-  DecodeError(DecodeError)
-  RequestError
-}
-
 pub fn get_users(
   client: Client,
   request: GetUsersRequest,
-) -> Result(Response(List(User)), GetUsersError) {
+) -> Result(List(User), TwitchApiError) {
   let request =
     request.new()
     |> request.set_body(json.string(""))
     |> request.set_query(query_params_from_get_users_request(request))
     |> request.set_path("users")
 
-  use response <- result.try(
-    client
-    |> client.get(request)
-    |> result.replace_error(RequestError),
-  )
+  use response <- result.try(client.get(client, request))
 
   response
   |> response.try_map(api_response.from_json(_, decoder()))
-  |> result.try(api_response.get_data_from_response)
-  |> result.map_error(DecodeError)
+  |> result.try(api_response.get_list_data_from_response)
 }

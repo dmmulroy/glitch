@@ -1,12 +1,13 @@
-import gleam/dynamic.{type Dynamic}
 import gleam/list
 import gleam/pair
+import gleam/result
 import gleam/http.{type Header, Get, Post}
 import gleam/http/request.{type Request, Request}
 import gleam/http/response.{type Response}
 import gleam/httpc
 import gleam/json.{type Json}
 import glitch/api/api_request
+import glitch/api/error.{type TwitchApiError, RequestError}
 import glitch/extended/request_ext
 
 pub opaque type Client {
@@ -15,10 +16,6 @@ pub opaque type Client {
 
 pub type Options {
   Options(client_id: String, access_token: String)
-}
-
-pub type ApiError {
-  RequestError
 }
 
 pub const new = Client
@@ -56,7 +53,7 @@ fn merge_headers(
 pub fn get(
   client: Client,
   request: Request(Json),
-) -> Result(Response(String), Dynamic) {
+) -> Result(Response(String), TwitchApiError) {
   let headers =
     client
     |> headers
@@ -67,18 +64,22 @@ pub fn get(
   |> request_ext.set_headers(headers)
   |> api_request.from_request
   |> httpc.send
+  |> result.map_error(RequestError)
 }
 
 pub fn post(
   client: Client,
   request: Request(Json),
-) -> Result(Response(String), Dynamic) {
+) -> Result(Response(String), TwitchApiError) {
   let headers =
     client
     |> headers
     |> merge_headers(request.headers)
 
-  Request(..request, method: Post, headers: headers)
+  request
+  |> request.set_method(Post)
+  |> request_ext.set_headers(headers)
   |> api_request.from_request
   |> httpc.send
+  |> result.map_error(RequestError)
 }

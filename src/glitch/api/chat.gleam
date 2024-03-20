@@ -1,12 +1,12 @@
 import gleam/dynamic.{type Decoder}
-import gleam/io
 import gleam/option.{type Option}
 import gleam/result
 import gleam/json.{type DecodeError, type Json}
-import gleam/http/response.{type Response}
+import gleam/http/response
 import gleam/http/request
 import glitch/api/client.{type Client}
 import glitch/api/api_response
+import glitch/api/error.{type TwitchApiError}
 import glitch/extended/json_ext
 
 pub type Message {
@@ -46,30 +46,18 @@ fn send_message_request_to_json(request: SendMessageRequest) -> Json {
   ])
 }
 
-pub type SendMessageError {
-  DecodeError(DecodeError)
-  RequestError
-}
-
 pub fn send_message(
   client: Client,
   request: SendMessageRequest,
-) -> Result(Response(List(Message)), SendMessageError) {
-  let body = send_message_request_to_json(request)
-  io.println(json.to_string(body))
+) -> Result(List(Message), TwitchApiError) {
   let request =
     request.new()
     |> request.set_body(send_message_request_to_json(request))
     |> request.set_path("chat/messages")
 
-  use response <- result.try(
-    client
-    |> client.post(request)
-    |> result.replace_error(RequestError),
-  )
+  use response <- result.try(client.post(client, request))
 
   response
   |> response.try_map(api_response.from_json(_, message_decoder()))
-  |> result.try(api_response.get_data_from_response)
-  |> result.map_error(DecodeError)
+  |> result.try(api_response.get_list_data_from_response)
 }
