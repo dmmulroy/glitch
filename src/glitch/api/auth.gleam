@@ -92,7 +92,7 @@ pub type GetTokenResponse {
 }
 
 fn get_token_response_decoder() -> Decoder(GetTokenResponse) {
-  dynamic.decode5(
+  dynamic.decode2(
     GetTokenResponse,
     dynamic.field("access_token", dynamic.string),
     dynamic.field("expires_in", dynamic.int),

@@ -52,7 +52,7 @@ fn merge_headers(
 pub fn get(
   client: Client,
   request: Request(String),
-) -> Result(Response(String), TwitchApiError) {
+) -> Result(Response(String), TwitchApiError(error)) {
   let headers =
     client
     |> headers
@@ -69,7 +69,7 @@ pub fn get(
 pub fn post(
   client: Client,
   request: Request(String),
-) -> Result(Response(String), TwitchApiError) {
+) -> Result(Response(String), TwitchApiError(error)) {
   let headers =
     client
     |> headers

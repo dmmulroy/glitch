@@ -320,7 +320,7 @@ pub fn decoder() -> Decoder(Scope) {
     |> result.replace_error([
       dynamic.DecodeError(
         expected: "Scope",
-        found: "String(" <> str <> ")",
+        found: "String(" <> string <> ")",
         path: [],
       ),
     ])
