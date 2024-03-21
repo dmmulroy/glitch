@@ -50,9 +50,14 @@ pub fn send_message(
   client: Client,
   request: SendMessageRequest,
 ) -> Result(List(Message), TwitchApiError) {
+  let body =
+    request
+    |> send_message_request_to_json
+    |> json.to_string
+
   let request =
     request.new()
-    |> request.set_body(send_message_request_to_json(request))
+    |> request.set_body(body)
     |> request.set_path("chat/messages")
 
   use response <- result.try(client.post(client, request))

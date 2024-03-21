@@ -103,7 +103,7 @@ pub fn get_users(
 ) -> Result(List(User), TwitchApiError) {
   let request =
     request.new()
-    |> request.set_body(json.string(""))
+    |> request.set_body("")
     |> request.set_query(query_params_from_get_users_request(request))
     |> request.set_path("users")
 

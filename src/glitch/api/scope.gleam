@@ -1,3 +1,7 @@
+import gleam/dynamic.{type Decoder}
+import gleam/json.{type DecodeError as JsonDecodeError, type Json}
+import gleam/result
+
 pub type Scope {
   AnalyticsReadExtensions
   AnalyticsReadGames
@@ -70,6 +74,11 @@ pub type Scope {
   UserWriteChat
   WhispersRead
   WhispersEdit
+}
+
+pub type ScopeError {
+  InvalidScope(String)
+  DecodeError(JsonDecodeError)
 }
 
 pub const scopes: List(Scope) = [
@@ -222,11 +231,7 @@ pub fn to_string(scope: Scope) -> String {
   }
 }
 
-pub type InvalidScope {
-  InvalidScope(String)
-}
-
-pub fn from_string(str: String) -> Result(Scope, InvalidScope) {
+pub fn from_string(str: String) -> Result(Scope, ScopeError) {
   case str {
     "analytics:read:extensions" -> Ok(AnalyticsReadExtensions)
     "analytics:read:games" -> Ok(AnalyticsReadGames)
@@ -301,4 +306,36 @@ pub fn from_string(str: String) -> Result(Scope, InvalidScope) {
     "whispers:edit" -> Ok(WhispersEdit)
     _ -> Error(InvalidScope(str))
   }
+}
+
+pub fn decoder() -> Decoder(Scope) {
+  fn(data: dynamic.Dynamic) {
+    use string <- result.try(
+      data
+      |> dynamic.string,
+    )
+
+    string
+    |> from_string
+    |> result.replace_error([
+      dynamic.DecodeError(
+        expected: "Scope",
+        found: "String(" <> str <> ")",
+        path: [],
+      ),
+    ])
+  }
+}
+
+pub fn to_json(scope: Scope) -> Json {
+  scope
+  |> to_string
+  |> json.string
+}
+
+pub fn from_json(json_string: String) -> Result(Scope, ScopeError) {
+  json_string
+  |> json.decode(dynamic.string)
+  |> result.map_error(DecodeError)
+  |> result.try(from_string)
 }

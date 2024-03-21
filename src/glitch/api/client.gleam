@@ -5,7 +5,6 @@ import gleam/http.{type Header, Get, Post}
 import gleam/http/request.{type Request, Request}
 import gleam/http/response.{type Response}
 import gleam/httpc
-import gleam/json.{type Json}
 import glitch/api/api_request
 import glitch/api/error.{type TwitchApiError, RequestError}
 import glitch/extended/request_ext
@@ -52,7 +51,7 @@ fn merge_headers(
 
 pub fn get(
   client: Client,
-  request: Request(Json),
+  request: Request(String),
 ) -> Result(Response(String), TwitchApiError) {
   let headers =
     client
@@ -69,7 +68,7 @@ pub fn get(
 
 pub fn post(
   client: Client,
-  request: Request(Json),
+  request: Request(String),
 ) -> Result(Response(String), TwitchApiError) {
   let headers =
     client
