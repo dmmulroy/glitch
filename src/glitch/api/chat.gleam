@@ -58,7 +58,7 @@ pub fn send_message(
   let request =
     request.new()
     |> request.set_body(body)
-    |> request.set_path("chat/messages")
+    |> request.set_path("helix/chat/messages")
 
   use response <- result.try(client.post(client, request))
 

@@ -105,7 +105,7 @@ pub fn get_users(
     request.new()
     |> request.set_body("")
     |> request.set_query(query_params_from_get_users_request(request))
-    |> request.set_path("users")
+    |> request.set_path("helix/users")
 
   use response <- result.try(client.get(client, request))
 

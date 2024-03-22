@@ -18,6 +18,16 @@ pub fn set_headers(
   Request(..request, headers: new_headers)
 }
 
+pub fn set_header(
+  request: Request(body),
+  header: #(String, String),
+) -> Request(body) {
+  let key = string.lowercase(header.0)
+  let value = header.1
+
+  request.set_header(request, key, value)
+}
+
 pub fn set_query_string(
   request: Request(body),
   query: Option(String),
