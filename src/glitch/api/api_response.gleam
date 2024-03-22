@@ -55,10 +55,9 @@ pub fn from_json(
   |> result.map_error(ResponseDecodeError)
 }
 
-// Start here on Friday
 fn get_data(
   api_response: TwitchApiResponse(data),
-) -> Result(data, TwitchApiError(error)) {
+) -> Result(data, TwitchApiError(TwitchApiResponse(data))) {
   case api_response {
     TwitchApiResponse(data) -> Ok(data)
     TwitchApiErrorResponse(_, _, _) as error -> Error(ResponseError(error))
@@ -85,7 +84,7 @@ fn get_list_data(
 
 pub fn get_data_from_response(
   response: Response(TwitchApiResponse(data)),
-) -> Result(data, TwitchApiError(error)) {
+) -> Result(data, TwitchApiError(TwitchApiResponse(data))) {
   use data <- result.try(response.try_map(response, get_data))
   Ok(data.body)
 }

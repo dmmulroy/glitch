@@ -100,7 +100,7 @@ pub fn query_params_from_get_users_request(
 pub fn get_users(
   client: Client,
   request: GetUsersRequest,
-) -> Result(List(User), TwitchApiError) {
+) -> Result(List(User), TwitchApiError(error)) {
   let request =
     request.new()
     |> request.set_body("")

@@ -49,7 +49,7 @@ fn send_message_request_to_json(request: SendMessageRequest) -> Json {
 pub fn send_message(
   client: Client,
   request: SendMessageRequest,
-) -> Result(List(Message), TwitchApiError) {
+) -> Result(List(Message), TwitchApiError(error)) {
   let body =
     request
     |> send_message_request_to_json

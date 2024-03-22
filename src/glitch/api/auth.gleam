@@ -4,8 +4,8 @@ import gleam/uri.{type Uri}
 import gleam/result
 import gleam/http/response
 import gleam/http/request
+import glitch/api/api_response.{type TwitchApiResponse}
 import glitch/api/client.{type Client}
-import glitch/api/api_response
 import glitch/api/error.{type TwitchApiError}
 import glitch/api/scope.{type Scope}
 
@@ -92,7 +92,7 @@ pub type GetTokenResponse {
 }
 
 fn get_token_response_decoder() -> Decoder(GetTokenResponse) {
-  dynamic.decode2(
+  dynamic.decode5(
     GetTokenResponse,
     dynamic.field("access_token", dynamic.string),
     dynamic.field("expires_in", dynamic.int),
@@ -111,7 +111,10 @@ pub fn get_token_response_from_json(
 pub fn get_token(
   client: Client,
   get_token_request: GetTokenRequest,
-) -> Result(GetTokenResponse, TwitchApiError) {
+) -> Result(
+  GetTokenResponse,
+  TwitchApiError(TwitchApiResponse(GetTokenResponse)),
+) {
   let body =
     get_token_request
     |> get_token_request_to_form_data
