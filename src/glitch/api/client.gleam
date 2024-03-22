@@ -45,40 +45,18 @@ pub fn get(
   client: Client,
   request: TwitchApiRequest,
 ) -> Result(Response(String), TwitchApiError(error)) {
-  todo
-  // let headers =
-  //   client
-  //   |> headers
-  //   |> merge_headers(request.headers)
-  //
-  // request
-  // |> request.set_method(Get)
-  // |> request_ext.set_headers(headers)
-  // |> api_request.from_request
-  // |> httpc.send
-  // |> result.map_error(RequestError)
+  request
+  |> api_request.set_headers(headers(client))
+  |> api_request.set_method(Get)
+  |> api_request.send
 }
 
 pub fn post(
   client: Client,
-  request: Request(String),
+  request: TwitchApiRequest,
 ) -> Result(Response(String), TwitchApiError(error)) {
-  // let headers =
-  //   client
-  //   |> headers
-  //   |> merge_headers(request.headers)
-  //
-  // request
-  // |> request.set_method(Post)
-  // |> request_ext.set_headers(headers)
-  // |> api_request.from_request
-  // |> function.tap(fn(req) {
-  //   io.debug(
-  //     request.to_uri(req)
-  //     |> uri.to_string,
-  //   )
-  // })
-  // |> httpc.send
-  // |> result.map_error(RequestError)
-  todo
+  request
+  |> api_request.set_headers(headers(client))
+  |> api_request.set_method(Post)
+  |> api_request.send
 }
