@@ -50,19 +50,20 @@ pub fn send_message(
   client: Client,
   request: SendMessageRequest,
 ) -> Result(List(Message), TwitchApiError(error)) {
-  let body =
-    request
-    |> send_message_request_to_json
-    |> json.to_string
-
-  let request =
-    request.new()
-    |> request.set_body(body)
-    |> request.set_path("helix/chat/messages")
-
-  use response <- result.try(client.post(client, request))
-
-  response
-  |> response.try_map(api_response.from_json(_, message_decoder()))
-  |> result.try(api_response.get_list_data_from_response)
+  todo
+  // let body =
+  //   request
+  //   |> send_message_request_to_json
+  //   |> json.to_string
+  //
+  // let request =
+  //   request.new()
+  //   |> request.set_body(body)
+  //   |> request.set_path("helix/chat/messages")
+  //
+  // use response <- result.try(client.post(client, request))
+  //
+  // response
+  // |> response.try_map(api_response.from_json(_, message_decoder()))
+  // |> result.try(api_response.get_list_data_from_response)
 }

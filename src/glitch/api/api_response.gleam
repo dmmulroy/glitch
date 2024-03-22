@@ -55,6 +55,16 @@ pub fn from_json(
   |> result.map_error(ResponseDecodeError)
 }
 
+pub fn of_http_response(response: Response(data)) {
+  case response {
+    Response(status, _, _) as response if status >= 300 -> {
+      // Start Here!
+      todo
+    }
+    _ -> panic
+  }
+}
+
 fn get_data(
   api_response: TwitchApiResponse(data),
 ) -> Result(data, TwitchApiError(TwitchApiResponse(data))) {

@@ -101,15 +101,16 @@ pub fn get_users(
   client: Client,
   request: GetUsersRequest,
 ) -> Result(List(User), TwitchApiError(error)) {
-  let request =
-    request.new()
-    |> request.set_body("")
-    |> request.set_query(query_params_from_get_users_request(request))
-    |> request.set_path("helix/users")
-
-  use response <- result.try(client.get(client, request))
-
-  response
-  |> response.try_map(api_response.from_json(_, decoder()))
-  |> result.try(api_response.get_list_data_from_response)
+  todo
+  // let request =
+  //   request.new()
+  //   |> request.set_body("")
+  //   |> request.set_query(query_params_from_get_users_request(request))
+  //   |> request.set_path("helix/users")
+  //
+  // use response <- result.try(client.get(client, request))
+  //
+  // response
+  // |> response.try_map(api_response.from_json(_, decoder()))
+  // |> result.try(api_response.get_list_data_from_response)
 }

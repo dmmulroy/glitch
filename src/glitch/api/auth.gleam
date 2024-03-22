@@ -115,18 +115,19 @@ pub fn get_token(
   GetTokenResponse,
   TwitchApiError(TwitchApiResponse(GetTokenResponse)),
 ) {
-  let body =
-    get_token_request
-    |> get_token_request_to_form_data
-
-  let request =
-    request.new()
-    |> request.set_body(body)
-    |> request.set_path("oauth2/token")
-
-  use response <- result.try(client.post(client, request))
-
-  response
-  |> response.try_map(api_response.from_json(_, get_token_response_decoder()))
-  |> result.try(api_response.get_data_from_response)
+  todo
+  // let body =
+  //   get_token_request
+  //   |> get_token_request_to_form_data
+  //
+  // let request =
+  //   request.new()
+  //   |> request.set_body(body)
+  //   |> request.set_path("oauth2/token")
+  //
+  // use response <- result.try(client.post(client, request))
+  //
+  // response
+  // |> response.try_map(api_response.from_json(_, get_token_response_decoder()))
+  // |> result.try(api_response.get_data_from_response)
 }

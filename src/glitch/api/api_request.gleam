@@ -37,7 +37,7 @@ pub fn new_id_api_request() {
   |> id_api_request_from_request
 }
 
-fn to_http_request(request: TwitchApiRequest) -> Request(String) {
+pub fn to_http_request(request: TwitchApiRequest) -> Request(String) {
   case request {
     ApiRequest(http_request) -> http_request
     IdApiRequest(http_request) -> http_request
