@@ -28,11 +28,11 @@ pub fn main() {
 
   let assert Ok(_) = chat.send_message(client, send_message_request)
 
-  let get_token_request = GetTokenRequest(code, AuthorizationCode, redirect_uri)
-
-  let assert Ok(response_result) = auth.get_token(client, get_token_request)
-
-  io.debug(response_result)
+  // let get_token_request = GetTokenRequest(code, AuthorizationCode, redirect_uri)
+  //
+  // let assert Ok(response_result) = auth.get_token(client, get_token_request)
+  //
+  // io.debug(response_result)
 
   Ok(Nil)
 }

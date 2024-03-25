@@ -1,16 +1,16 @@
 import gleam/result
 import gleam/httpc
 import glitch/api/api_request.{type TwitchApiRequest}
-import glitch/api/api_response.{type TwitchApiResponse}
+import glitch/api/api_response_v2.{type TwitchApiResponse}
 import glitch/api/error.{type TwitchApiError, RequestError}
 
 pub fn send(
   request: TwitchApiRequest,
-) -> Result(TwitchApiResponse(data), TwitchApiError(error)) {
-  todo
-  // request
-  // |> api_request.to_http_request
-  // |> httpc.send
-  // |> result.map_error(RequestError)
-  // |> api_response.of_http_response
+) -> Result(TwitchApiResponse(String), TwitchApiError(error)) {
+  request
+  |> api_request.to_http_request
+  |> httpc.send
+  |> result.map_error(RequestError)
+  // TODO: Consider the Error type
+  |> result.map(api_response_v2.of_http_response)
 }

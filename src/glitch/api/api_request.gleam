@@ -1,56 +1,43 @@
-import gleam/result
 import gleam/http.{type Header, Https}
 import gleam/http/request.{type Request, Request}
-import gleam/http/response.{type Response}
-import gleam/httpc
-import glitch/api/error.{type TwitchApiError, RequestError}
 import glitch/extended/request_ext
 
 pub opaque type TwitchApiRequest {
-  ApiRequest(Request(String))
-  IdApiRequest(Request(String))
+  HelixApiRequest(Request(String))
+  AuthApiRequest(Request(String))
 }
 
-const api_host = "api.twitch.tv"
+const api_host = "api.twitch.tv/helix"
 
 const id_api_host = "id.twitch.tv"
 
 fn api_request_from_request(request: Request(String)) -> TwitchApiRequest {
-  ApiRequest(request)
+  HelixApiRequest(request)
 }
 
-fn id_api_request_from_request(request: Request(String)) -> TwitchApiRequest {
-  IdApiRequest(request)
+fn auth_request_from_request(request: Request(String)) -> TwitchApiRequest {
+  AuthApiRequest(request)
 }
 
-pub fn new_api_request() -> TwitchApiRequest {
+pub fn new_helix_request() -> TwitchApiRequest {
   request.new()
   |> request.set_scheme(Https)
   |> request.set_host(api_host)
   |> api_request_from_request
 }
 
-pub fn new_id_api_request() {
+pub fn new_auth_request() -> TwitchApiRequest {
   request.new()
   |> request.set_scheme(Https)
   |> request.set_host(id_api_host)
-  |> id_api_request_from_request
+  |> auth_request_from_request
 }
 
 pub fn to_http_request(request: TwitchApiRequest) -> Request(String) {
   case request {
-    ApiRequest(http_request) -> http_request
-    IdApiRequest(http_request) -> http_request
+    HelixApiRequest(http_request) -> http_request
+    AuthApiRequest(http_request) -> http_request
   }
-}
-
-pub fn send(
-  request: TwitchApiRequest,
-) -> Result(Response(String), TwitchApiError(error)) {
-  request
-  |> to_http_request
-  |> httpc.send
-  |> result.map_error(RequestError)
 }
 
 pub fn set_headers(
@@ -64,18 +51,18 @@ pub fn set_headers(
   }
 
   case request {
-    ApiRequest(_) as http_request ->
+    HelixApiRequest(_) as http_request ->
       http_request
       |> set_headers_internal(headers)
-      |> ApiRequest
-    IdApiRequest(_) as http_request ->
+      |> HelixApiRequest
+    AuthApiRequest(_) as http_request ->
       http_request
       |> set_headers_internal(headers)
-      |> ApiRequest
+      |> HelixApiRequest
   }
 }
 
-pub fn set_header(request, header) {
+pub fn set_header(request, header) -> TwitchApiRequest {
   let set_header_internal = fn(request, header) {
     request
     |> to_http_request
@@ -83,51 +70,53 @@ pub fn set_header(request, header) {
   }
 
   case request {
-    ApiRequest(_) as http_request ->
+    HelixApiRequest(_) as http_request ->
       http_request
       |> set_header_internal(header)
-      |> ApiRequest
-    IdApiRequest(_) as http_request ->
+      |> HelixApiRequest
+    AuthApiRequest(_) as http_request ->
       http_request
       |> set_header_internal(header)
-      |> ApiRequest
+      |> HelixApiRequest
   }
 }
 
-pub fn set_method(request, method) {
+pub fn set_method(request, method) -> TwitchApiRequest {
   case request {
-    ApiRequest(http_request) ->
-      ApiRequest(Request(..http_request, method: method))
-    IdApiRequest(http_request) ->
-      IdApiRequest(Request(..http_request, method: method))
+    HelixApiRequest(http_request) ->
+      HelixApiRequest(Request(..http_request, method: method))
+    AuthApiRequest(http_request) ->
+      AuthApiRequest(Request(..http_request, method: method))
   }
 }
 
-pub fn set_query(request, query_params) {
+pub fn set_query(request, query_params) -> TwitchApiRequest {
   case request {
-    ApiRequest(http_request) ->
+    HelixApiRequest(http_request) ->
       http_request
       |> request.set_query(query_params)
-      |> ApiRequest
-    IdApiRequest(http_request) ->
+      |> HelixApiRequest
+    AuthApiRequest(http_request) ->
       http_request
       |> request.set_query(query_params)
-      |> IdApiRequest
+      |> AuthApiRequest
   }
 }
 
-pub fn set_body(request, body) {
+pub fn set_body(request, body) -> TwitchApiRequest {
   case request {
-    ApiRequest(http_request) -> ApiRequest(Request(..http_request, body: body))
-    IdApiRequest(http_request) ->
-      IdApiRequest(Request(..http_request, body: body))
+    HelixApiRequest(http_request) ->
+      HelixApiRequest(Request(..http_request, body: body))
+    AuthApiRequest(http_request) ->
+      AuthApiRequest(Request(..http_request, body: body))
   }
 }
 
-pub fn set_path(request, path) {
+pub fn set_path(request, path) -> TwitchApiRequest {
   case request {
-    ApiRequest(http_request) -> ApiRequest(Request(..http_request, path: path))
-    IdApiRequest(http_request) ->
-      IdApiRequest(Request(..http_request, path: path))
+    HelixApiRequest(http_request) ->
+      HelixApiRequest(Request(..http_request, path: path))
+    AuthApiRequest(http_request) ->
+      AuthApiRequest(Request(..http_request, path: path))
   }
 }
