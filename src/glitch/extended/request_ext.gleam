@@ -1,7 +1,18 @@
 import gleam/list
 import gleam/option.{type Option}
 import gleam/string
+import gleam/http.{type Header}
 import gleam/http/request.{type Request, Request}
+
+pub fn merge_headers(
+  request: Request(data),
+  into base: List(Header),
+  from overrides: List(Header),
+) -> Request(data) {
+  request
+  |> set_headers(base)
+  |> set_headers(overrides)
+}
 
 /// Set a request's headers using a list.
 ///
@@ -12,7 +23,7 @@ pub fn set_headers(
   headers: List(#(String, String)),
 ) -> Request(body) {
   let new_headers =
-    list.fold(headers, [], fn(acc, header) {
+    list.fold(headers, request.headers, fn(acc, header) {
       list.key_set(acc, string.lowercase(header.0), header.1)
     })
   Request(..request, headers: new_headers)

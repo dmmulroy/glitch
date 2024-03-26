@@ -40,6 +40,14 @@ pub fn to_http_request(request: TwitchApiRequest) -> Request(String) {
   }
 }
 
+pub fn headers(request: TwitchApiRequest) -> List(Header) {
+  let http_request =
+    request
+    |> to_http_request
+
+  http_request.headers
+}
+
 pub fn set_headers(
   request: TwitchApiRequest,
   headers: List(Header),
@@ -78,6 +86,19 @@ pub fn set_header(request, header) -> TwitchApiRequest {
       http_request
       |> set_header_internal(header)
       |> HelixApiRequest
+  }
+}
+
+pub fn merge_headers(
+  request: TwitchApiRequest,
+  into base: List(Header),
+  from overrides: List(Header),
+) -> TwitchApiRequest {
+  case request {
+    HelixApiRequest(http_request) ->
+      HelixApiRequest(request_ext.merge_headers(http_request, base, overrides))
+    AuthApiRequest(http_request) ->
+      AuthApiRequest(request_ext.merge_headers(http_request, base, overrides))
   }
 }
 

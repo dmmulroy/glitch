@@ -1,7 +1,7 @@
 import gleam/http.{type Header, Get, Post}
 import glitch/api/api
 import glitch/api/api_request.{type TwitchApiRequest}
-import glitch/api/api_response_v2.{type TwitchApiResponse}
+import glitch/api/api_response.{type TwitchApiResponse}
 import glitch/api/error.{type TwitchApiError}
 
 pub opaque type Client {
@@ -48,7 +48,7 @@ pub fn post(
   request: TwitchApiRequest,
 ) -> Result(TwitchApiResponse(String), TwitchApiError(error)) {
   request
-  |> api_request.set_headers(headers(client))
+  |> api_request.merge_headers(headers(client), api_request.headers(request))
   |> api_request.set_method(Post)
   |> api.send
 }

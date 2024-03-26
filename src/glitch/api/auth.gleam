@@ -1,15 +1,11 @@
 import gleam/dynamic.{type Decoder}
-import gleam/json.{type DecodeError}
-import gleam/uri.{type Uri}
 import gleam/result
-import gleam/http/response
-import gleam/http/request
+import gleam/uri.{type Uri}
 import glitch/api/api_response.{type TwitchApiResponse}
+import glitch/api/api_request
 import glitch/api/client.{type Client}
 import glitch/api/error.{type TwitchApiError}
 import glitch/api/scope.{type Scope}
-
-// https://id.twitch.tv/oauth2/token
 
 pub type GrantType {
   AuthorizationCode
@@ -69,14 +65,22 @@ pub fn token_type_from_string(
 }
 
 pub type GetTokenRequest {
-  GetTokenRequest(code: String, grant_type: GrantType, redirect_uri: Uri)
+  GetTokenRequest(
+    client_id: String,
+    client_secret: String,
+    code: String,
+    grant_type: GrantType,
+    redirect_uri: Uri,
+  )
 }
 
 fn get_token_request_to_form_data(get_token_request: GetTokenRequest) -> String {
   [
+    #("client_id", get_token_request.client_id),
+    #("client_secret", get_token_request.client_secret),
     #("code", get_token_request.code),
     #("grant_type", grant_type_to_string(get_token_request.grant_type)),
-    #("code", uri.to_string(get_token_request.redirect_uri)),
+    #("redirect_uri", uri.to_string(get_token_request.redirect_uri)),
   ]
   |> uri.query_to_string
 }
@@ -102,12 +106,6 @@ fn get_token_response_decoder() -> Decoder(GetTokenResponse) {
   )
 }
 
-pub fn get_token_response_from_json(
-  json_string: String,
-) -> Result(GetTokenResponse, DecodeError) {
-  json.decode(json_string, get_token_response_decoder())
-}
-
 pub fn get_token(
   client: Client,
   get_token_request: GetTokenRequest,
@@ -115,19 +113,22 @@ pub fn get_token(
   GetTokenResponse,
   TwitchApiError(TwitchApiResponse(GetTokenResponse)),
 ) {
-  todo
-  // let body =
-  //   get_token_request
-  //   |> get_token_request_to_form_data
-  //
-  // let request =
-  //   request.new()
-  //   |> request.set_body(body)
-  //   |> request.set_path("oauth2/token")
-  //
-  // use response <- result.try(client.post(client, request))
-  //
-  // response
-  // |> response.try_map(api_response.from_json(_, get_token_response_decoder()))
-  // |> result.try(api_response.get_data_from_response)
+  let body =
+    get_token_request
+    |> get_token_request_to_form_data
+
+  let request =
+    api_request.new_auth_request()
+    |> api_request.set_body(body)
+    |> api_request.set_path("oauth2/token")
+    |> api_request.set_header(#(
+      "content-type",
+      "application/x-www-form-urlencoded",
+    ))
+
+  use response <- result.try(client.post(client, request))
+
+  // START WEDNESDAY: Data Decoding is failing
+  response
+  |> api_response.get_data(get_token_response_decoder())
 }

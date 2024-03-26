@@ -4,7 +4,7 @@ import gleam/result
 import gleam/json.{type DecodeError, type Json}
 import glitch/api/client.{type Client}
 import glitch/api/api_request
-import glitch/api/api_response_v2
+import glitch/api/api_response
 import glitch/api/error.{type TwitchApiError}
 import glitch/extended/json_ext
 
@@ -62,5 +62,5 @@ pub fn send_message(
   use response <- result.try(client.post(client, api_req))
 
   response
-  |> api_response_v2.get_list_data(message_decoder())
+  |> api_response.get_list_data(message_decoder())
 }

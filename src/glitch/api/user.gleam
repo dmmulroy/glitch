@@ -4,12 +4,11 @@ import gleam/option.{type Option}
 import gleam/result
 import gleam/uri.{type Uri}
 import gleam/json.{type DecodeError, type Json}
-import gleam/http/request
-import gleam/http/response
 import glitch/api/client.{type Client}
+import glitch/api/api_request
+import glitch/api/api_response
 import glitch/extended/dynamic_ext
 import glitch/extended/json_ext
-import glitch/api/api_response
 import glitch/api/error.{type TwitchApiError}
 
 pub type User {
@@ -101,16 +100,14 @@ pub fn get_users(
   client: Client,
   request: GetUsersRequest,
 ) -> Result(List(User), TwitchApiError(error)) {
-  todo
-  // let request =
-  //   request.new()
-  //   |> request.set_body("")
-  //   |> request.set_query(query_params_from_get_users_request(request))
-  //   |> request.set_path("helix/users")
-  //
-  // use response <- result.try(client.get(client, request))
-  //
-  // response
-  // |> response.try_map(api_response.from_json(_, decoder()))
-  // |> result.try(api_response.get_list_data_from_response)
+  let request =
+    api_request.new_helix_request()
+    |> api_request.set_body("")
+    |> api_request.set_query(query_params_from_get_users_request(request))
+    |> api_request.set_path("helix/users")
+
+  use response <- result.try(client.get(client, request))
+
+  response
+  |> api_response.get_list_data(decoder())
 }
