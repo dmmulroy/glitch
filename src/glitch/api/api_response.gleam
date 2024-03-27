@@ -3,10 +3,14 @@ import gleam/json
 import gleam/result
 import gleam/http.{type Header}
 import gleam/http/response.{type Response, Response}
-import glitch/api/error.{type TwitchApiError, ResponseDecodeError}
+import glitch/api/error.{type TwitchApiError, ResponseDecodeError, ResponseError}
 
 pub opaque type TwitchApiResponse(data) {
   TwitchApiResponse(Response(data))
+}
+
+type TwitchApiErrorResponse {
+  TwitchApiErrorResponse(status: Int, message: String)
 }
 
 pub fn of_http_response(response: Response(String)) -> TwitchApiResponse(String) {
@@ -28,22 +32,57 @@ pub fn get_headers(api_response: TwitchApiResponse(data)) -> List(Header) {
   http_response.headers
 }
 
+fn error_decoder() -> Decoder(TwitchApiErrorResponse) {
+  dynamic.decode2(
+    TwitchApiErrorResponse,
+    dynamic.field("status", dynamic.int),
+    dynamic.field("message", dynamic.string),
+  )
+}
+
 pub fn get_data(
   api_response: TwitchApiResponse(String),
   data_decoder: Decoder(data),
 ) -> Result(data, TwitchApiError(error)) {
-  api_response
-  |> get_body
-  |> json.decode(dynamic.field("data", data_decoder))
-  |> result.map_error(ResponseDecodeError)
+  let body =
+    api_response
+    |> get_body
+
+  let error = json.decode(body, error_decoder())
+
+  case error {
+    Ok(TwitchApiErrorResponse(status, message)) ->
+      Error(ResponseError(status, message))
+    _ ->
+      body
+      |> json.decode(
+        dynamic.any([data_decoder, dynamic.field("data", data_decoder)]),
+      )
+      |> result.map_error(ResponseDecodeError)
+  }
 }
 
 pub fn get_list_data(
   api_response: TwitchApiResponse(String),
   data_decoder: Decoder(data),
 ) -> Result(List(data), TwitchApiError(error)) {
-  api_response
-  |> get_body
-  |> json.decode(dynamic.field("data", dynamic.list(of: data_decoder)))
-  |> result.map_error(ResponseDecodeError)
+  let body =
+    api_response
+    |> get_body
+
+  let error = json.decode(body, error_decoder())
+
+  case error {
+    Ok(TwitchApiErrorResponse(status, message)) ->
+      Error(ResponseError(status, message))
+    _ ->
+      body
+      |> json.decode(
+        dynamic.any([
+          dynamic.field("data", dynamic.list(of: data_decoder)),
+          dynamic.list(of: data_decoder),
+        ]),
+      )
+      |> result.map_error(ResponseDecodeError)
+  }
 }

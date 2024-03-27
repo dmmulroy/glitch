@@ -4,7 +4,7 @@ import gleam/uri
 import dot_env/env
 import glitch/api/client.{Options}
 import glitch/api/chat.{SendMessageRequest}
-import glitch/api/auth.{AuthorizationCode, GetTokenRequest}
+import glitch/api/auth
 
 const user_id = "209286766"
 
@@ -29,11 +29,10 @@ pub fn main() {
   let assert Ok(_) = chat.send_message(client, send_message_request)
 
   let get_token_request =
-    GetTokenRequest(
+    auth.make_authorization_code_grant_request(
       client_id,
       client_secret,
       code,
-      AuthorizationCode,
       redirect_uri,
     )
 

@@ -17,8 +17,9 @@ pub type GrantType {
 pub fn grant_type_to_string(grant_type: GrantType) -> String {
   case grant_type {
     AuthorizationCode -> "authorization_code"
-    // TODO: Implement the rest of these
-    _ -> panic("not supported")
+    ClientCredentials -> "client_credentials"
+    DeviceCode -> "device_code"
+    Implicit -> "implicit"
   }
 }
 
@@ -64,24 +65,64 @@ pub fn token_type_from_string(
   }
 }
 
-pub type GetTokenRequest {
-  GetTokenRequest(
+pub opaque type GetTokenRequest {
+  AuthorizationCodeGrant(
     client_id: String,
     client_secret: String,
     code: String,
     grant_type: GrantType,
     redirect_uri: Uri,
   )
+  ClientCredentialsGrant(
+    client_id: String,
+    client_secret: String,
+    grant_type: GrantType,
+  )
+}
+
+pub fn make_authorization_code_grant_request(
+  client_id: String,
+  client_secret: String,
+  code: String,
+  redirect_uri: Uri,
+) -> GetTokenRequest {
+  AuthorizationCodeGrant(
+    client_id,
+    client_secret,
+    code,
+    AuthorizationCode,
+    redirect_uri,
+  )
+}
+
+pub fn make_client_credentials_grant_request(
+  client_id: String,
+  client_secret: String,
+) -> GetTokenRequest {
+  ClientCredentialsGrant(client_id, client_secret, ClientCredentials)
 }
 
 fn get_token_request_to_form_data(get_token_request: GetTokenRequest) -> String {
-  [
-    #("client_id", get_token_request.client_id),
-    #("client_secret", get_token_request.client_secret),
-    #("code", get_token_request.code),
-    #("grant_type", grant_type_to_string(get_token_request.grant_type)),
-    #("redirect_uri", uri.to_string(get_token_request.redirect_uri)),
-  ]
+  case get_token_request {
+    AuthorizationCodeGrant(
+      client_id,
+      client_secret,
+      code,
+      grant_type,
+      redirect_uri,
+    ) -> [
+      #("client_id", client_id),
+      #("client_secret", client_secret),
+      #("code", code),
+      #("grant_type", grant_type_to_string(grant_type)),
+      #("redirect_uri", uri.to_string(redirect_uri)),
+    ]
+    ClientCredentialsGrant(client_id, client_secret, grant_type) -> [
+      #("client_id", client_id),
+      #("client_secret", client_secret),
+      #("grant_type", grant_type_to_string(grant_type)),
+    ]
+  }
   |> uri.query_to_string
 }
 
@@ -128,7 +169,6 @@ pub fn get_token(
 
   use response <- result.try(client.post(client, request))
 
-  // START WEDNESDAY: Data Decoding is failing
   response
   |> api_response.get_data(get_token_response_decoder())
 }

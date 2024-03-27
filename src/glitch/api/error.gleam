@@ -5,5 +5,5 @@ pub type TwitchApiError(error) {
   InvalidResponseType(wanted: String, found: String)
   ResponseDecodeError(DecodeError)
   RequestError(Dynamic)
-  ResponseError(error)
+  ResponseError(status: Int, message: String)
 }
