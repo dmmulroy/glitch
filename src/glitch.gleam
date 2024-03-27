@@ -33,13 +33,8 @@ pub fn main() {
 
   let assert Ok(_) = chat.send_message(client, send_message_request)
 
-  let get_token_request =
-    auth.new_authorization_code_grant_request(
-      client_id,
-      client_secret,
-      code,
-      redirect_uri,
-    )
+  let assert Ok(get_token_request) =
+    auth.new_authorization_code_grant_request(client, code, redirect_uri)
 
   let assert Ok(response_result) = auth.get_token(client, get_token_request)
 
