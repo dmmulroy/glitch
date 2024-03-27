@@ -152,7 +152,7 @@ fn get_token_request_to_form_data(get_token_request: GetTokenRequest) -> String 
       #("client_id", client_id),
       #("client_secret", client_secret),
       #("grant_type", grant_type_to_string(grant_type)),
-      #("refresh_token", refresh_token),
+      #("refresh_token", uri.percent_encode(refresh_token)),
     ]
   }
   |> uri.query_to_string
@@ -204,12 +204,30 @@ pub fn get_token(
   response
   |> api_response.get_data(get_token_response_decoder())
 }
-// pub fn refresh_token(
-//   client,
-//   refresh_token,
-// ) -> Result(
-//   GetTokenResponse,
-//   TwitchApiError(TwitchApiResponse(GetTokenResponse)),
-// ) {
-//   todo
-// }
+
+pub fn refresh_token(
+  client,
+) -> Result(
+  GetTokenResponse,
+  TwitchApiError(TwitchApiResponse(GetTokenResponse)),
+) {
+  use get_token_request <- result.try(new_refresh_token_grant_request(client))
+
+  let body =
+    get_token_request
+    |> get_token_request_to_form_data
+
+  let request =
+    api_request.new_auth_request()
+    |> api_request.set_body(body)
+    |> api_request.set_path("oauth2/token")
+    |> api_request.set_header(#(
+      "content-type",
+      "application/x-www-form-urlencoded",
+    ))
+
+  use response <- result.try(client.post(client, request))
+
+  response
+  |> api_response.get_data(get_token_response_decoder())
+}
