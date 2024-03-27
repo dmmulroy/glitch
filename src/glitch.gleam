@@ -1,8 +1,8 @@
 import gleam/io
-import gleam/option.{None}
+import gleam/option.{None, Some}
 import gleam/uri
 import dot_env/env
-import glitch/api/client.{Options}
+import glitch/api/client
 import glitch/api/chat.{SendMessageRequest}
 import glitch/api/auth
 
@@ -15,8 +15,13 @@ pub fn main() {
   let assert Ok(code) = env.get("CODE")
   let assert Ok(redirect_uri) = uri.parse("http://localhost:3030/twitch/oauth")
 
-  let client_options = Options(client_id: client_id, access_token: access_token)
-  let client = client.new(client_options)
+  let client =
+    client.new(
+      client_id: client_id,
+      client_secret: Some(client_secret),
+      access_token: Some(access_token),
+      refresh_token: None,
+    )
 
   let send_message_request =
     SendMessageRequest(
@@ -29,7 +34,7 @@ pub fn main() {
   let assert Ok(_) = chat.send_message(client, send_message_request)
 
   let get_token_request =
-    auth.make_authorization_code_grant_request(
+    auth.new_authorization_code_grant_request(
       client_id,
       client_secret,
       code,

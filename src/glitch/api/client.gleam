@@ -1,44 +1,103 @@
+import gleam/option.{type Option, Some}
+import gleam/result
 import gleam/http.{type Header, Get, Post}
 import glitch/api/api
 import glitch/api/api_request.{type TwitchApiRequest}
 import glitch/api/api_response.{type TwitchApiResponse}
-import glitch/api/error.{type TwitchApiError}
+import glitch/api/error.{
+  type ClientError, type TwitchApiError, ClientError, NoAccessToken,
+  NoClientSecret, NoRefreshToken,
+}
 
 pub opaque type Client {
-  Client(options: Options)
+  Client(
+    client_id: String,
+    client_secret: Option(String),
+    access_token: Option(String),
+    refresh_token: Option(String),
+  )
 }
 
-pub type Options {
-  Options(client_id: String, access_token: String)
+pub fn new(
+  client_id client_id: String,
+  client_secret client_secret: Option(String),
+  access_token access_token: Option(String),
+  refresh_token refresh_token: Option(String),
+) -> Client {
+  Client(client_id, client_secret, access_token, refresh_token)
 }
-
-pub const new = Client
 
 pub fn client_id(client: Client) -> String {
-  client.options.client_id
+  client.client_id
 }
 
-pub fn access_token(client: Client) -> String {
-  client.options.access_token
+pub fn set_client_id(client, client_id: String) -> Client {
+  Client(..client, client_id: client_id)
 }
 
-pub fn headers(client: Client) -> List(Header) {
-  let client_id = client_id(client)
-  let access_token = "Bearer " <> access_token(client)
+pub fn client_secret(client: Client) -> Result(String, ClientError) {
+  option.to_result(client.client_secret, NoClientSecret)
+}
 
-  [
-    #("Authorization", access_token),
+pub fn set_client_secret(client, client_secret: String) -> Client {
+  Client(..client, client_secret: Some(client_secret))
+}
+
+pub fn client_credentials(
+  client: Client,
+) -> Result(#(String, String), ClientError) {
+  use client_secret <- result.try(option.to_result(
+    client.client_secret,
+    NoClientSecret,
+  ))
+
+  Ok(#(client.client_id, client_secret))
+}
+
+pub fn access_token(client: Client) -> Result(String, ClientError) {
+  option.to_result(client.access_token, NoAccessToken)
+}
+
+pub fn set_access_token(client, access_token: String) -> Client {
+  Client(..client, access_token: Some(access_token))
+}
+
+pub fn refresh_token(client: Client) -> Result(String, ClientError) {
+  option.to_result(client.refresh_token, NoRefreshToken)
+}
+
+pub fn set_refresh_token(client, refresh_token: String) -> Client {
+  Client(..client, refresh_token: Some(refresh_token))
+}
+
+pub fn headers(client: Client) -> Result(List(Header), ClientError) {
+  let client_id = client.client_id
+
+  use access_token <- result.try(option.to_result(
+    client.access_token,
+    NoAccessToken,
+  ))
+
+  let authorization = "Bearer " <> access_token
+
+  Ok([
+    #("Authorization", authorization),
     #("Client-Id", client_id),
-    #("content-type", "application/json"),
-  ]
+    #("Content-Type", "application/json"),
+  ])
 }
 
 pub fn get(
   client: Client,
   request: TwitchApiRequest,
 ) -> Result(TwitchApiResponse(String), TwitchApiError(error)) {
+  use headers <- result.try(
+    headers(client)
+    |> result.map_error(ClientError),
+  )
+
   request
-  |> api_request.set_headers(headers(client))
+  |> api_request.merge_headers(headers, api_request.headers(request))
   |> api_request.set_method(Get)
   |> api.send
 }
@@ -47,8 +106,13 @@ pub fn post(
   client: Client,
   request: TwitchApiRequest,
 ) -> Result(TwitchApiResponse(String), TwitchApiError(error)) {
+  use headers <- result.try(
+    headers(client)
+    |> result.map_error(ClientError),
+  )
+
   request
-  |> api_request.merge_headers(headers(client), api_request.headers(request))
+  |> api_request.merge_headers(headers, api_request.headers(request))
   |> api_request.set_method(Post)
   |> api.send
 }

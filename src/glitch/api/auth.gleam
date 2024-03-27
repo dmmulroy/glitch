@@ -10,6 +10,7 @@ import glitch/api/scope.{type Scope}
 pub type GrantType {
   AuthorizationCode
   ClientCredentials
+  RefreshToken
   DeviceCode
   Implicit
 }
@@ -18,6 +19,7 @@ pub fn grant_type_to_string(grant_type: GrantType) -> String {
   case grant_type {
     AuthorizationCode -> "authorization_code"
     ClientCredentials -> "client_credentials"
+    RefreshToken -> "refresh_token"
     DeviceCode -> "device_code"
     Implicit -> "implicit"
   }
@@ -78,9 +80,15 @@ pub opaque type GetTokenRequest {
     client_secret: String,
     grant_type: GrantType,
   )
+  RefreshTokenGrant(
+    client_id: String,
+    client_secret: String,
+    grant_type: GrantType,
+    refresh_token: String,
+  )
 }
 
-pub fn make_authorization_code_grant_request(
+pub fn new_authorization_code_grant_request(
   client_id: String,
   client_secret: String,
   code: String,
@@ -95,11 +103,19 @@ pub fn make_authorization_code_grant_request(
   )
 }
 
-pub fn make_client_credentials_grant_request(
+pub fn new_client_credentials_grant_request(
   client_id: String,
   client_secret: String,
 ) -> GetTokenRequest {
   ClientCredentialsGrant(client_id, client_secret, ClientCredentials)
+}
+
+pub fn new_refresh_token_grant_request(
+  client_id: String,
+  client_secret: String,
+  refresh_token: String,
+) -> GetTokenRequest {
+  RefreshTokenGrant(client_id, client_secret, RefreshToken, refresh_token)
 }
 
 fn get_token_request_to_form_data(get_token_request: GetTokenRequest) -> String {
@@ -121,6 +137,12 @@ fn get_token_request_to_form_data(get_token_request: GetTokenRequest) -> String 
       #("client_id", client_id),
       #("client_secret", client_secret),
       #("grant_type", grant_type_to_string(grant_type)),
+    ]
+    RefreshTokenGrant(client_id, client_secret, grant_type, refresh_token) -> [
+      #("client_id", client_id),
+      #("client_secret", client_secret),
+      #("grant_type", grant_type_to_string(grant_type)),
+      #("refresh_token", refresh_token),
     ]
   }
   |> uri.query_to_string
@@ -172,3 +194,12 @@ pub fn get_token(
   response
   |> api_response.get_data(get_token_response_decoder())
 }
+// pub fn refresh_token(
+//   client,
+//   refresh_token,
+// ) -> Result(
+//   GetTokenResponse,
+//   TwitchApiError(TwitchApiResponse(GetTokenResponse)),
+// ) {
+//   todo
+// }
