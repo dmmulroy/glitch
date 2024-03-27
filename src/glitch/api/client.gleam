@@ -35,8 +35,8 @@ pub fn set_client_id(client, client_id: String) -> Client {
   Client(..client, client_id: client_id)
 }
 
-pub fn client_secret(client: Client) -> Result(String, ClientError) {
-  option.to_result(client.client_secret, NoClientSecret)
+pub fn client_secret(client: Client) -> Result(String, TwitchApiError(error)) {
+  option.to_result(client.client_secret, ClientError(NoClientSecret))
 }
 
 pub fn set_client_secret(client, client_secret: String) -> Client {
@@ -45,37 +45,37 @@ pub fn set_client_secret(client, client_secret: String) -> Client {
 
 pub fn client_credentials(
   client: Client,
-) -> Result(#(String, String), ClientError) {
+) -> Result(#(String, String), TwitchApiError(error)) {
   use client_secret <- result.try(option.to_result(
     client.client_secret,
-    NoClientSecret,
+    ClientError(NoClientSecret),
   ))
 
   Ok(#(client.client_id, client_secret))
 }
 
-pub fn access_token(client: Client) -> Result(String, ClientError) {
-  option.to_result(client.access_token, NoAccessToken)
+pub fn access_token(client: Client) -> Result(String, TwitchApiError(error)) {
+  option.to_result(client.access_token, ClientError(NoAccessToken))
 }
 
 pub fn set_access_token(client, access_token: String) -> Client {
   Client(..client, access_token: Some(access_token))
 }
 
-pub fn refresh_token(client: Client) -> Result(String, ClientError) {
-  option.to_result(client.refresh_token, NoRefreshToken)
+pub fn refresh_token(client: Client) -> Result(String, TwitchApiError(error)) {
+  option.to_result(client.refresh_token, ClientError(NoRefreshToken))
 }
 
 pub fn set_refresh_token(client, refresh_token: String) -> Client {
   Client(..client, refresh_token: Some(refresh_token))
 }
 
-pub fn headers(client: Client) -> Result(List(Header), ClientError) {
+pub fn headers(client: Client) -> Result(List(Header), TwitchApiError(error)) {
   let client_id = client.client_id
 
   use access_token <- result.try(option.to_result(
     client.access_token,
-    NoAccessToken,
+    ClientError(NoAccessToken),
   ))
 
   let authorization = "Bearer " <> access_token
@@ -91,10 +91,7 @@ pub fn get(
   client: Client,
   request: TwitchApiRequest,
 ) -> Result(TwitchApiResponse(String), TwitchApiError(error)) {
-  use headers <- result.try(
-    headers(client)
-    |> result.map_error(ClientError),
-  )
+  use headers <- result.try(headers(client))
 
   request
   |> api_request.merge_headers(headers, api_request.headers(request))
@@ -106,10 +103,7 @@ pub fn post(
   client: Client,
   request: TwitchApiRequest,
 ) -> Result(TwitchApiResponse(String), TwitchApiError(error)) {
-  use headers <- result.try(
-    headers(client)
-    |> result.map_error(ClientError),
-  )
+  use headers <- result.try(headers(client))
 
   request
   |> api_request.merge_headers(headers, api_request.headers(request))

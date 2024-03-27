@@ -4,7 +4,7 @@ import gleam/uri.{type Uri}
 import glitch/api/api_response.{type TwitchApiResponse}
 import glitch/api/api_request
 import glitch/api/client.{type Client}
-import glitch/api/error.{type TwitchApiError, ClientError}
+import glitch/api/error.{type TwitchApiError}
 import glitch/api/scope.{type Scope}
 
 pub type GrantType {
@@ -93,10 +93,9 @@ pub fn new_authorization_code_grant_request(
   code: String,
   redirect_uri: Uri,
 ) -> Result(GetTokenRequest, TwitchApiError(error)) {
-  use #(client_id, client_secret) <- result.try(
-    client.client_credentials(client)
-    |> result.map_error(ClientError),
-  )
+  use #(client_id, client_secret) <- result.try(client.client_credentials(
+    client,
+  ))
 
   Ok(AuthorizationCodeGrant(
     client_id,
@@ -110,20 +109,23 @@ pub fn new_authorization_code_grant_request(
 pub fn new_client_credentials_grant_request(
   client,
 ) -> Result(GetTokenRequest, TwitchApiError(error)) {
-  use #(client_id, client_secret) <- result.try(
-    client.client_credentials(client)
-    |> result.map_error(ClientError),
-  )
+  use #(client_id, client_secret) <- result.try(client.client_credentials(
+    client,
+  ))
 
   Ok(ClientCredentialsGrant(client_id, client_secret, ClientCredentials))
 }
 
 pub fn new_refresh_token_grant_request(
-  client_id: String,
-  client_secret: String,
-  refresh_token: String,
-) -> GetTokenRequest {
-  RefreshTokenGrant(client_id, client_secret, RefreshToken, refresh_token)
+  client,
+) -> Result(GetTokenRequest, TwitchApiError(error)) {
+  use #(client_id, client_secret) <- result.try(client.client_credentials(
+    client,
+  ))
+
+  use refresh_token <- result.try(client.refresh_token(client))
+
+  Ok(RefreshTokenGrant(client_id, client_secret, RefreshToken, refresh_token))
 }
 
 fn get_token_request_to_form_data(get_token_request: GetTokenRequest) -> String {
