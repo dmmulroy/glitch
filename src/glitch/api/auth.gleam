@@ -168,7 +168,7 @@ pub type GetTokenResponse {
   )
 }
 
-fn get_token_response_decoder() -> Decoder(GetTokenResponse) {
+pub fn get_token_response_decoder() -> Decoder(GetTokenResponse) {
   dynamic.decode5(
     GetTokenResponse,
     dynamic.field("access_token", dynamic.string),
