@@ -6,45 +6,70 @@ import gleam/uri.{type Uri}
 import gleam/http.{Get}
 import gleam/http/request.{type Request, Request}
 import gleam/http/response.{type Response}
-import gleam/erlang/process.{type Selector, type Subject}
-import gleam/otp/actor
+import gleam/erlang/process.{type Subject}
+import gleam/otp/actor.{type StartError}
 import mist.{type Connection, type ResponseData}
 
 pub opaque type RedirectServer {
-  RedirectServer(
+  State(
     csrf_state: String,
     mailbox: Subject(String),
+    code: Option(String),
     port: Option(Int),
     redirect_uri: Option(Uri),
-    stop_server_signal: Selector(Message),
+    status: Status,
   )
 }
 
-pub const new = RedirectServer
+pub type Status {
+  Running
+  Stopped
+}
 
 pub type Message {
-  TakeCode(code: String)
-  Stop
+  SetCode(code: String)
+  Shutdown
+  Start
 }
 
-pub fn start(server: RedirectServer) {
-  let assert Ok(_) =
-    mist.new(new_router(server))
-    |> mist.port(option.unwrap(server.port, 3000))
-    |> mist.start_http
+pub fn new(
+  csrf_state: String,
+  mailbox: Subject(String),
+  port: Option(Int),
+  redirect_uri: Option(Uri),
+) -> Result(Subject(Message), StartError) {
+  let state = State(csrf_state, mailbox, None, port, redirect_uri, Stopped)
 
-  let message_selector: Subject(Nil) = process.new_subject()
+  actor.start(state, handle_message)
+}
 
-  process.select_forever(
-    process.selecting(server.stop_server_signal, message_selector, fn(message) {
-      case message {
-        // START HERE
-        Stop -> Nil
-        _ -> Nil
-      }
-    }),
-  )
-  // process.sleep_forever()
+fn handle_message(
+  message: Message,
+  state: RedirectServer,
+) -> actor.Next(Message, RedirectServer) {
+  case message {
+    SetCode(code) -> {
+      process.send(state.mailbox, code)
+      actor.continue(State(..state, code: Some(code)))
+    }
+    Shutdown -> actor.Stop(process.Normal)
+    Start -> {
+      let assert Ok(_) =
+        mist.new(new_router(state))
+        |> mist.port(option.unwrap(state.port, 3000))
+        |> mist.start_http
+
+      actor.continue(State(..state, status: Running))
+    }
+  }
+}
+
+pub fn start(server: Subject(Message)) {
+  actor.send(server, Start)
+}
+
+pub fn shutdown(server: Subject(Message)) {
+  actor.send(server, Shutdown)
 }
 
 fn new_router(server: RedirectServer) {
@@ -57,6 +82,7 @@ fn new_router(server: RedirectServer) {
     case req.method, request.path_segments(req) {
       Get, [path] if path == redirect_uri_str ->
         make_redirect_handler(server)(req)
+      Get, ["hello"] -> ok_response(Some("hello chat!"))
       _, _ ->
         response.new(404)
         |> response.set_body(mist.Bytes(bytes_builder.new()))
@@ -119,8 +145,6 @@ fn make_redirect_handler(server: RedirectServer) {
 }
 
 fn send_response(server: RedirectServer, code: String) {
-  fn(_) {
-    actor.send(server.mailbox, code)
-    ok_response(Some("Hello chat!"))
-  }
+  actor.send(server, SendCode(code))
+  fn(_) { ok_response(Some("Hello chat!")) }
 }

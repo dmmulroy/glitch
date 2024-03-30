@@ -23,6 +23,7 @@ pprint = "~> 1.0"
 gleam_otp = "~> 0.10"
 mist = "~> 1.0"
 gleam_erlang = "~> 0.25"
+shellout = "~> 1.6"
 
 [dev-dependencies]
 gleeunit = "~> 1.0"
