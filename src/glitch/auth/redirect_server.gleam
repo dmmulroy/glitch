@@ -7,6 +7,7 @@ import gleam/http.{Get}
 import gleam/http/request.{type Request, Request}
 import gleam/http/response.{type Response}
 import gleam/erlang/process.{type Subject}
+import gleam/otp/supervisor.{type Message as SupervisorMessage}
 import gleam/otp/actor.{type StartError}
 import mist.{type Connection, type ResponseData}
 
@@ -14,7 +15,7 @@ pub opaque type RedirectServer {
   State(
     csrf_state: String,
     mailbox: Subject(String),
-    code: Option(String),
+    mist: Option(Subject(SupervisorMessage)),
     port: Option(Int),
     redirect_uri: Option(Uri),
     status: Status,
@@ -27,7 +28,6 @@ pub type Status {
 }
 
 pub type Message {
-  SetCode(code: String)
   Shutdown
   Start
 }
@@ -48,18 +48,21 @@ fn handle_message(
   state: RedirectServer,
 ) -> actor.Next(Message, RedirectServer) {
   case message {
-    SetCode(code) -> {
-      process.send(state.mailbox, code)
-      actor.continue(State(..state, code: Some(code)))
+    Shutdown -> {
+      let assert Some(Nil) =
+        state.mist
+        |> option.map(process.subject_owner)
+        |> option.map(process.kill)
+
+      actor.Stop(process.Normal)
     }
-    Shutdown -> actor.Stop(process.Normal)
     Start -> {
-      let assert Ok(_) =
+      let assert Ok(mist_subject) =
         mist.new(new_router(state))
         |> mist.port(option.unwrap(state.port, 3000))
         |> mist.start_http
 
-      actor.continue(State(..state, status: Running))
+      actor.continue(State(..state, mist: Some(mist_subject), status: Running))
     }
   }
 }
@@ -145,6 +148,8 @@ fn make_redirect_handler(server: RedirectServer) {
 }
 
 fn send_response(server: RedirectServer, code: String) {
-  actor.send(server, SendCode(code))
-  fn(_) { ok_response(Some("Hello chat!")) }
+  fn(_) {
+    process.send_after(server.mailbox, 250, code)
+    ok_response(Some("Successfully received redirect payload from Twitch."))
+  }
 }
