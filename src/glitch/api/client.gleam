@@ -70,7 +70,7 @@ pub fn set_refresh_token(client, refresh_token: String) -> Client {
   Client(..client, refresh_token: Some(refresh_token))
 }
 
-pub fn headers(client: Client) -> Result(List(Header), TwitchApiError(error)) {
+fn headers(client: Client) -> Result(List(Header), TwitchApiError(error)) {
   let client_id = client.client_id
 
   use access_token <- result.try(option.to_result(
@@ -91,7 +91,10 @@ pub fn get(
   client: Client,
   request: TwitchApiRequest,
 ) -> Result(TwitchApiResponse(String), TwitchApiError(error)) {
-  use headers <- result.try(headers(client))
+  use headers <- result.try(case api_request.is_auth_request(request) {
+    True -> Ok([])
+    False -> headers(client)
+  })
 
   request
   |> api_request.merge_headers(headers, api_request.headers(request))
@@ -103,7 +106,10 @@ pub fn post(
   client: Client,
   request: TwitchApiRequest,
 ) -> Result(TwitchApiResponse(String), TwitchApiError(error)) {
-  use headers <- result.try(headers(client))
+  use headers <- result.try(case api_request.is_auth_request(request) {
+    True -> Ok([])
+    False -> headers(client)
+  })
 
   request
   |> api_request.merge_headers(headers, api_request.headers(request))
