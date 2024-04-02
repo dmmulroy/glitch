@@ -5,51 +5,9 @@ import glitch/api/api_response.{type TwitchApiResponse}
 import glitch/api/api_request
 import glitch/api/client.{type Client}
 import glitch/api/error.{type TwitchApiError}
-import glitch/types/scope.{type Scope}
+import glitch/types/access_token.{type AccessToken}
 import glitch/types/grant.{
   type GrantType, AuthorizationCode, ClientCredentials, RefreshToken,
-}
-
-pub type TokenType {
-  Bearer
-}
-
-pub type TokenTypeError {
-  InvalidTokenType(String)
-}
-
-fn token_type_decoder() -> Decoder(TokenType) {
-  fn(data: dynamic.Dynamic) {
-    use string <- result.try(
-      data
-      |> dynamic.string,
-    )
-
-    string
-    |> token_type_from_string
-    |> result.replace_error([
-      dynamic.DecodeError(
-        expected: "TokenType",
-        found: "String(" <> string <> ")",
-        path: [],
-      ),
-    ])
-  }
-}
-
-pub fn token_type_to_string(token_type: TokenType) -> String {
-  case token_type {
-    Bearer -> "bearer"
-  }
-}
-
-pub fn token_type_from_string(
-  string: String,
-) -> Result(TokenType, TokenTypeError) {
-  case string {
-    "bearer" -> Ok(Bearer)
-    _ -> Error(InvalidTokenType(string))
-  }
 }
 
 pub opaque type GetTokenRequest {
@@ -144,24 +102,11 @@ fn get_token_request_to_form_data(get_token_request: GetTokenRequest) -> String 
 }
 
 pub type GetTokenResponse {
-  GetTokenResponse(
-    access_token: String,
-    expires_in: Int,
-    refresh_token: String,
-    scope: List(Scope),
-    token_type: TokenType,
-  )
+  GetTokenResponse(access_token: AccessToken)
 }
 
 pub fn get_token_response_decoder() -> Decoder(GetTokenResponse) {
-  dynamic.decode5(
-    GetTokenResponse,
-    dynamic.field("access_token", dynamic.string),
-    dynamic.field("expires_in", dynamic.int),
-    dynamic.field("refresh_token", dynamic.string),
-    dynamic.field("scope", dynamic.list(scope.decoder())),
-    dynamic.field("token_type", token_type_decoder()),
-  )
+  dynamic.decode1(GetTokenResponse, access_token.decoder())
 }
 
 pub fn get_token(

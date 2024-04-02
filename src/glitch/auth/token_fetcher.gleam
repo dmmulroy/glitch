@@ -9,6 +9,7 @@ import shellout
 import glitch/auth/redirect_server
 import glitch/api/client.{type Client}
 import glitch/api/auth
+import glitch/types/access_token.{type AccessToken}
 
 const uri = "https://id.twitch.tv/oauth2/authorize?response_type=code&client_id=cew8p1bv247ua1czt6a1okon8ejy1r&redirect_uri=http://localhost:3000/redirect&scope=user%3Awrite%3Achat+user%3Abot+channel%3Abot&state=foobar"
 
@@ -17,7 +18,7 @@ pub opaque type TokenFetcher {
 }
 
 pub type Message {
-  Fetch(reply_to: Subject(Result(String, Nil)))
+  Fetch(reply_to: Subject(Result(AccessToken, Nil)))
 }
 
 pub fn new(client: Client) -> Result(Subject(Message), StartError) {
@@ -37,7 +38,7 @@ fn handle_message(
 
 pub fn fetch(
   token_fetcher: Subject(Message),
-  reply_to: Subject(Result(String, Nil)),
+  reply_to: Subject(Result(AccessToken, Nil)),
 ) {
   actor.send(token_fetcher, Fetch(reply_to))
 }
