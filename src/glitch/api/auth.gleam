@@ -5,24 +5,9 @@ import glitch/api/api_response.{type TwitchApiResponse}
 import glitch/api/api_request
 import glitch/api/client.{type Client}
 import glitch/api/error.{type TwitchApiError}
-import glitch/api/scope.{type Scope}
-
-pub type GrantType {
-  AuthorizationCode
-  ClientCredentials
-  RefreshToken
-  DeviceCode
-  Implicit
-}
-
-pub fn grant_type_to_string(grant_type: GrantType) -> String {
-  case grant_type {
-    AuthorizationCode -> "authorization_code"
-    ClientCredentials -> "client_credentials"
-    RefreshToken -> "refresh_token"
-    DeviceCode -> "device_code"
-    Implicit -> "implicit"
-  }
+import glitch/types/scope.{type Scope}
+import glitch/types/grant.{
+  type GrantType, AuthorizationCode, ClientCredentials, RefreshToken,
 }
 
 pub type TokenType {
@@ -140,18 +125,18 @@ fn get_token_request_to_form_data(get_token_request: GetTokenRequest) -> String 
       #("client_id", client_id),
       #("client_secret", client_secret),
       #("code", code),
-      #("grant_type", grant_type_to_string(grant_type)),
+      #("grant_type", grant.to_string(grant_type)),
       #("redirect_uri", uri.to_string(redirect_uri)),
     ]
     ClientCredentialsGrant(client_id, client_secret, grant_type) -> [
       #("client_id", client_id),
       #("client_secret", client_secret),
-      #("grant_type", grant_type_to_string(grant_type)),
+      #("grant_type", grant.to_string(grant_type)),
     ]
     RefreshTokenGrant(client_id, client_secret, grant_type, refresh_token) -> [
       #("client_id", client_id),
       #("client_secret", client_secret),
-      #("grant_type", grant_type_to_string(grant_type)),
+      #("grant_type", grant.to_string(grant_type)),
       #("refresh_token", uri.percent_encode(refresh_token)),
     ]
   }
