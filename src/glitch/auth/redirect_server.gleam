@@ -16,8 +16,7 @@ pub opaque type RedirectServer {
     csrf_state: String,
     mailbox: Subject(String),
     mist: Option(Subject(SupervisorMessage)),
-    port: Option(Int),
-    redirect_uri: Option(Uri),
+    redirect_uri: Uri,
     status: Status,
   )
 }
@@ -35,10 +34,9 @@ pub type Message {
 pub fn new(
   csrf_state: String,
   mailbox: Subject(String),
-  port: Option(Int),
-  redirect_uri: Option(Uri),
+  redirect_uri: Uri,
 ) -> Result(Subject(Message), StartError) {
-  let state = State(csrf_state, mailbox, None, port, redirect_uri, Stopped)
+  let state = State(csrf_state, mailbox, None, redirect_uri, Stopped)
 
   actor.start(state, handle_message)
 }
@@ -57,9 +55,11 @@ fn handle_message(
       actor.Stop(process.Normal)
     }
     Start -> {
+      let port = option.unwrap(state.redirect_uri.port, 3000)
+
       let assert Ok(mist_subject) =
         mist.new(new_router(state))
-        |> mist.port(option.unwrap(state.port, 3000))
+        |> mist.port(port)
         |> mist.start_http
 
       actor.continue(State(..state, mist: Some(mist_subject), status: Running))
@@ -76,16 +76,12 @@ pub fn shutdown(server: Subject(Message)) {
 }
 
 fn new_router(server: RedirectServer) {
-  let redirect_uri_str =
-    server.redirect_uri
-    |> option.map(uri.to_string)
-    |> option.unwrap("redirect")
+  let redirect_uri_str = uri.to_string(server.redirect_uri)
 
   let router = fn(req: Request(Connection)) -> Response(ResponseData) {
     case req.method, request.path_segments(req) {
       Get, [path] if path == redirect_uri_str ->
         make_redirect_handler(server)(req)
-      Get, ["hello"] -> ok_response(Some("hello chat!"))
       _, _ ->
         response.new(404)
         |> response.set_body(mist.Bytes(bytes_builder.new()))
