@@ -76,12 +76,11 @@ pub fn shutdown(server: Subject(Message)) {
 }
 
 fn new_router(server: RedirectServer) {
-  let redirect_uri_str = uri.to_string(server.redirect_uri)
+  let redirect_path = server.redirect_uri.path
 
   let router = fn(req: Request(Connection)) -> Response(ResponseData) {
     case req.method, request.path_segments(req) {
-      Get, [path] if path == redirect_uri_str ->
-        make_redirect_handler(server)(req)
+      Get, [path] if path == redirect_path -> make_redirect_handler(server)(req)
       _, _ ->
         response.new(404)
         |> response.set_body(mist.Bytes(bytes_builder.new()))
