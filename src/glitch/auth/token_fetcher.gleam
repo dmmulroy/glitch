@@ -48,6 +48,7 @@ pub type Message {
   Fetch(reply_to: Subject(Result(AccessToken, Nil)))
 }
 
+// START HERE ON FRIDAY: TokenFetcher can't use the client
 pub fn new(
   client: Client,
   scopes: List(Scope),
