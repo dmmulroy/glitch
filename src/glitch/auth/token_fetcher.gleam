@@ -71,8 +71,9 @@ pub fn handle_fetch(state: TokenFetcher, reply_to) {
 
   io.debug(csrf_state)
 
-  let assert Ok(server) =
-    redirect_server.new(csrf_state, mailbox, uri_ext.new())
+  let assert Ok(redirect_uri) = uri.parse(uri)
+
+  let assert Ok(server) = redirect_server.new(csrf_state, mailbox, redirect_uri)
 
   redirect_server.start(server)
 
