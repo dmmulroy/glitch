@@ -1,10 +1,11 @@
 import gleam/dynamic.{type Decoder}
 import gleam/result
 import gleam/uri.{type Uri}
+import gleam/http.{Post}
+import glitch/api/api
 import glitch/api/api_response.{type TwitchApiResponse}
 import glitch/api/api_request
-import glitch/api/client.{type Client}
-import glitch/api/error.{type TwitchApiError}
+import glitch/error/error.{type TwitchError, AuthError, InvalidGetTokenRequest}
 import glitch/types/access_token.{type AccessToken}
 import glitch/types/grant.{
   type GrantType, AuthorizationCode, ClientCredentials, RefreshToken,
@@ -32,43 +33,33 @@ pub opaque type GetTokenRequest {
 }
 
 pub fn new_authorization_code_grant_request(
-  client,
-  code: String,
-  redirect_uri: Uri,
-) -> Result(GetTokenRequest, TwitchApiError(error)) {
-  use #(client_id, client_secret) <- result.try(client.client_credentials(
-    client,
-  ))
-
-  Ok(AuthorizationCodeGrant(
+  client_id client_id: String,
+  client_secret client_secret: String,
+  code code: String,
+  redirect_uri redirect_uri: Uri,
+) -> GetTokenRequest {
+  AuthorizationCodeGrant(
     client_id,
     client_secret,
     code,
     AuthorizationCode,
     redirect_uri,
-  ))
+  )
 }
 
 pub fn new_client_credentials_grant_request(
-  client,
-) -> Result(GetTokenRequest, TwitchApiError(error)) {
-  use #(client_id, client_secret) <- result.try(client.client_credentials(
-    client,
-  ))
-
-  Ok(ClientCredentialsGrant(client_id, client_secret, ClientCredentials))
+  client_id client_id: String,
+  client_secret client_secret: String,
+) -> GetTokenRequest {
+  ClientCredentialsGrant(client_id, client_secret, ClientCredentials)
 }
 
 pub fn new_refresh_token_grant_request(
-  client,
-) -> Result(GetTokenRequest, TwitchApiError(error)) {
-  use #(client_id, client_secret) <- result.try(client.client_credentials(
-    client,
-  ))
-
-  use refresh_token <- result.try(client.refresh_token(client))
-
-  Ok(RefreshTokenGrant(client_id, client_secret, RefreshToken, refresh_token))
+  client_id client_id: String,
+  client_secret client_secret: String,
+  refresh_token refresh_token: String,
+) -> GetTokenRequest {
+  RefreshTokenGrant(client_id, client_secret, RefreshToken, refresh_token)
 }
 
 fn get_token_request_to_form_data(get_token_request: GetTokenRequest) -> String {
@@ -110,54 +101,55 @@ pub fn get_token_response_decoder() -> Decoder(GetTokenResponse) {
 }
 
 pub fn get_token(
-  client: Client,
   get_token_request: GetTokenRequest,
 ) -> Result(
   GetTokenResponse,
-  TwitchApiError(TwitchApiResponse(GetTokenResponse)),
+  TwitchError(TwitchApiResponse(GetTokenResponse)),
 ) {
-  let body =
-    get_token_request
-    |> get_token_request_to_form_data
+  case get_token_request {
+    RefreshTokenGrant(_, _, _, _) -> Error(AuthError(InvalidGetTokenRequest))
+    _ -> {
+      let body =
+        get_token_request
+        |> get_token_request_to_form_data
 
-  let request =
-    api_request.new_auth_request()
-    |> api_request.set_body(body)
-    |> api_request.set_path("oauth2/token")
-    |> api_request.set_header(#(
-      "content-type",
-      "application/x-www-form-urlencoded",
-    ))
-
-  use response <- result.try(client.post(client, request))
-
-  response
-  |> api_response.get_data(get_token_response_decoder())
+      api_request.new_auth_request()
+      |> api_request.set_body(body)
+      |> api_request.set_path("oauth2/token")
+      |> api_request.set_header(#(
+        "content-type",
+        "application/x-www-form-urlencoded",
+      ))
+      |> api_request.set_method(Post)
+      |> api.send
+      |> result.try(api_response.get_data(_, get_token_response_decoder()))
+    }
+  }
 }
 
 pub fn refresh_token(
-  client,
+  get_token_request: GetTokenRequest,
 ) -> Result(
   GetTokenResponse,
-  TwitchApiError(TwitchApiResponse(GetTokenResponse)),
+  TwitchError(TwitchApiResponse(GetTokenResponse)),
 ) {
-  use get_token_request <- result.try(new_refresh_token_grant_request(client))
+  case get_token_request {
+    RefreshTokenGrant(_, _, _, _) -> {
+      let body =
+        get_token_request
+        |> get_token_request_to_form_data
 
-  let body =
-    get_token_request
-    |> get_token_request_to_form_data
-
-  let request =
-    api_request.new_auth_request()
-    |> api_request.set_body(body)
-    |> api_request.set_path("oauth2/token")
-    |> api_request.set_header(#(
-      "content-type",
-      "application/x-www-form-urlencoded",
-    ))
-
-  use response <- result.try(client.post(client, request))
-
-  response
-  |> api_response.get_data(get_token_response_decoder())
+      api_request.new_auth_request()
+      |> api_request.set_body(body)
+      |> api_request.set_path("oauth2/token")
+      |> api_request.set_header(#(
+        "content-type",
+        "application/x-www-form-urlencoded",
+      ))
+      |> api_request.set_method(Post)
+      |> api.send
+      |> result.try(api_response.get_data(_, get_token_response_decoder()))
+    }
+    _ -> Error(AuthError(InvalidGetTokenRequest))
+  }
 }

@@ -9,7 +9,7 @@ import glitch/api/api_request
 import glitch/api/api_response
 import glitch/extended/dynamic_ext
 import glitch/extended/json_ext
-import glitch/api/error.{type TwitchApiError}
+import glitch/error/error.{type TwitchError}
 
 pub type User {
   User(
@@ -99,7 +99,7 @@ pub fn query_params_from_get_users_request(
 pub fn get_users(
   client: Client,
   request: GetUsersRequest,
-) -> Result(List(User), TwitchApiError(error)) {
+) -> Result(List(User), TwitchError(error)) {
   let request =
     api_request.new_helix_request()
     |> api_request.set_body("")

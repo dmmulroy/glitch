@@ -5,15 +5,16 @@ import gleam/pair
 import gleam/string
 import gleam/uri.{type Uri, Uri}
 import gleam/option.{type Option, None, Some}
+import gleam/result
 import gleam/erlang/os
 import gleam/erlang/process.{type Subject}
-import gleam/otp/actor.{type StartError}
+import gleam/otp/actor
 import prng/random
 import prng/seed
 import shellout
 import glitch/auth/redirect_server
-import glitch/api/client.{type Client}
 import glitch/api/auth
+import glitch/error/error.{type TwitchError, AuthError, TokenFetcherStartError}
 import glitch/types/access_token.{type AccessToken}
 import glitch/types/scope.{type Scope}
 import glitch/extended/uri_ext
@@ -40,26 +41,35 @@ const default_redirect_uri = Uri(
   None,
 )
 
-pub opaque type TokenFetcher {
-  State(client: Client, redirect_uri: Option(Uri), scopes: List(Scope))
-}
+pub type TokenFetcher =
+  Subject(Message)
 
-pub type Message {
+pub opaque type Message {
   Fetch(reply_to: Subject(Result(AccessToken, Nil)))
 }
 
-// START HERE ON FRIDAY: TokenFetcher can't use the client
-pub fn new(
-  client: Client,
-  scopes: List(Scope),
-  redirect_uri: Option(Uri),
-) -> Result(Subject(Message), StartError) {
-  let state = State(client, redirect_uri, scopes)
-
-  actor.start(state, handle_message)
+pub opaque type TokenFetcherState {
+  State(
+    client_id: String,
+    client_secret: String,
+    redirect_uri: Option(Uri),
+    scopes: List(Scope),
+  )
 }
 
-fn new_authorizatin_uri(token_fetcher: TokenFetcher, csrf_state) -> Uri {
+pub fn new(
+  client_id: String,
+  client_secret: String,
+  scopes: List(Scope),
+  redirect_uri: Option(Uri),
+) -> Result(TokenFetcher, TwitchError(error)) {
+  let state = State(client_id, client_secret, redirect_uri, scopes)
+
+  actor.start(state, handle_message)
+  |> result.replace_error(AuthError(TokenFetcherStartError))
+}
+
+fn new_authorization_uri(token_fetcher: TokenFetcherState, csrf_state) -> Uri {
   let scopes =
     token_fetcher.scopes
     |> list.fold("", fn(acc, scope) {
@@ -75,7 +85,7 @@ fn new_authorizatin_uri(token_fetcher: TokenFetcher, csrf_state) -> Uri {
     |> uri.to_string
 
   let query_params = [
-    #("client_id", client.client_id(token_fetcher.client)),
+    #("client_id", token_fetcher.client_id),
     #("redirect_uri", redirect_uri),
     #("response_type", "code"),
     #("scope", scopes),
@@ -87,21 +97,21 @@ fn new_authorizatin_uri(token_fetcher: TokenFetcher, csrf_state) -> Uri {
 
 fn handle_message(
   message: Message,
-  state: TokenFetcher,
-) -> actor.Next(Message, TokenFetcher) {
+  state: TokenFetcherState,
+) -> actor.Next(Message, TokenFetcherState) {
   case message {
     Fetch(reply_to) -> handle_fetch(state, reply_to)
   }
 }
 
 pub fn fetch(
-  token_fetcher: Subject(Message),
+  token_fetcher: TokenFetcher,
   reply_to: Subject(Result(AccessToken, Nil)),
 ) {
   actor.send(token_fetcher, Fetch(reply_to))
 }
 
-pub fn handle_fetch(state: TokenFetcher, reply_to) {
+pub fn handle_fetch(state: TokenFetcherState, reply_to) {
   let mailbox: Subject(String) = process.new_subject()
 
   let assert Ok(csrf_state) =
@@ -118,7 +128,7 @@ pub fn handle_fetch(state: TokenFetcher, reply_to) {
 
   let authorize_uri =
     state
-    |> new_authorizatin_uri(csrf_state)
+    |> new_authorization_uri(csrf_state)
     |> uri.to_string
 
   let assert Ok(_) = case os.family() {
@@ -137,10 +147,15 @@ pub fn handle_fetch(state: TokenFetcher, reply_to) {
     |> process.selecting(mailbox, function.identity)
     |> process.select_forever
 
-  let assert Ok(request) =
-    auth.new_authorization_code_grant_request(state.client, code, redirect_uri)
+  let request =
+    auth.new_authorization_code_grant_request(
+      state.client_id,
+      state.client_secret,
+      code,
+      redirect_uri,
+    )
 
-  let assert Ok(response) = auth.get_token(state.client, request)
+  let assert Ok(response) = auth.get_token(request)
 
   redirect_server.shutdown(server)
 

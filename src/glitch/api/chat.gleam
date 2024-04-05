@@ -5,7 +5,7 @@ import gleam/json.{type DecodeError, type Json}
 import glitch/api/client.{type Client}
 import glitch/api/api_request
 import glitch/api/api_response
-import glitch/api/error.{type TwitchApiError}
+import glitch/error/error.{type TwitchError}
 import glitch/extended/json_ext
 
 pub type Message {
@@ -48,7 +48,7 @@ fn send_message_request_to_json(request: SendMessageRequest) -> Json {
 pub fn send_message(
   client: Client,
   request: SendMessageRequest,
-) -> Result(List(Message), TwitchApiError(error)) {
+) -> Result(List(Message), TwitchError(error)) {
   let body =
     request
     |> send_message_request_to_json

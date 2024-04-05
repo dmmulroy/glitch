@@ -3,14 +3,14 @@ import gleam/json
 import gleam/result
 import gleam/http.{type Header}
 import gleam/http/response.{type Response, Response}
-import glitch/api/error.{type TwitchApiError, ResponseDecodeError, ResponseError}
+import glitch/error/error.{type TwitchError, ResponseDecodeError, ResponseError}
 
 pub opaque type TwitchApiResponse(data) {
   TwitchApiResponse(Response(data))
 }
 
-type TwitchApiErrorResponse {
-  TwitchApiErrorResponse(status: Int, message: String)
+type TwitchErrorResponse {
+  TwitchErrorResponse(status: Int, message: String)
 }
 
 pub fn of_http_response(response: Response(String)) -> TwitchApiResponse(String) {
@@ -32,9 +32,9 @@ pub fn get_headers(api_response: TwitchApiResponse(data)) -> List(Header) {
   http_response.headers
 }
 
-fn error_decoder() -> Decoder(TwitchApiErrorResponse) {
+fn error_decoder() -> Decoder(TwitchErrorResponse) {
   dynamic.decode2(
-    TwitchApiErrorResponse,
+    TwitchErrorResponse,
     dynamic.field("status", dynamic.int),
     dynamic.field("message", dynamic.string),
   )
@@ -43,7 +43,7 @@ fn error_decoder() -> Decoder(TwitchApiErrorResponse) {
 pub fn get_data(
   api_response: TwitchApiResponse(String),
   data_decoder: Decoder(data),
-) -> Result(data, TwitchApiError(error)) {
+) -> Result(data, TwitchError(error)) {
   let body =
     api_response
     |> get_body
@@ -51,7 +51,7 @@ pub fn get_data(
   let error = json.decode(body, error_decoder())
 
   case error {
-    Ok(TwitchApiErrorResponse(status, message)) ->
+    Ok(TwitchErrorResponse(status, message)) ->
       Error(ResponseError(status, message))
     _ ->
       body
@@ -65,7 +65,7 @@ pub fn get_data(
 pub fn get_list_data(
   api_response: TwitchApiResponse(String),
   data_decoder: Decoder(data),
-) -> Result(List(data), TwitchApiError(error)) {
+) -> Result(List(data), TwitchError(error)) {
   let body =
     api_response
     |> get_body
@@ -73,7 +73,7 @@ pub fn get_list_data(
   let error = json.decode(body, error_decoder())
 
   case error {
-    Ok(TwitchApiErrorResponse(status, message)) ->
+    Ok(TwitchErrorResponse(status, message)) ->
       Error(ResponseError(status, message))
     _ ->
       body
