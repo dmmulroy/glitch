@@ -10,7 +10,7 @@ pub type TwitchError(error) {
   ResponseDecodeError(DecodeError)
   RequestError(Dynamic)
   ResponseError(status: Int, message: String)
-  AuthError(AuthError)
+  AuthError(AuthError(error))
 }
 
 pub type ClientError {
@@ -19,7 +19,8 @@ pub type ClientError {
   NoRefreshToken
 }
 
-pub type AuthError {
+pub type AuthError(error) {
   InvalidGetTokenRequest
   TokenFetcherStartError
+  TokenFetcherFetchError(TwitchError(error))
 }

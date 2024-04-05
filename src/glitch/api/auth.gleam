@@ -1,4 +1,3 @@
-import gleam/dynamic.{type Decoder}
 import gleam/result
 import gleam/uri.{type Uri}
 import gleam/http.{Post}
@@ -92,20 +91,9 @@ fn get_token_request_to_form_data(get_token_request: GetTokenRequest) -> String 
   |> uri.query_to_string
 }
 
-pub type GetTokenResponse {
-  GetTokenResponse(access_token: AccessToken)
-}
-
-pub fn get_token_response_decoder() -> Decoder(GetTokenResponse) {
-  dynamic.decode1(GetTokenResponse, access_token.decoder())
-}
-
 pub fn get_token(
   get_token_request: GetTokenRequest,
-) -> Result(
-  GetTokenResponse,
-  TwitchError(TwitchApiResponse(GetTokenResponse)),
-) {
+) -> Result(AccessToken, TwitchError(TwitchApiResponse(AccessToken))) {
   case get_token_request {
     RefreshTokenGrant(_, _, _, _) -> Error(AuthError(InvalidGetTokenRequest))
     _ -> {
@@ -122,17 +110,14 @@ pub fn get_token(
       ))
       |> api_request.set_method(Post)
       |> api.send
-      |> result.try(api_response.get_data(_, get_token_response_decoder()))
+      |> result.try(api_response.get_data(_, access_token.decoder()))
     }
   }
 }
 
 pub fn refresh_token(
   get_token_request: GetTokenRequest,
-) -> Result(
-  GetTokenResponse,
-  TwitchError(TwitchApiResponse(GetTokenResponse)),
-) {
+) -> Result(AccessToken, TwitchError(TwitchApiResponse(AccessToken))) {
   case get_token_request {
     RefreshTokenGrant(_, _, _, _) -> {
       let body =
@@ -148,7 +133,7 @@ pub fn refresh_token(
       ))
       |> api_request.set_method(Post)
       |> api.send
-      |> result.try(api_response.get_data(_, get_token_response_decoder()))
+      |> result.try(api_response.get_data(_, access_token.decoder()))
     }
     _ -> Error(AuthError(InvalidGetTokenRequest))
   }
