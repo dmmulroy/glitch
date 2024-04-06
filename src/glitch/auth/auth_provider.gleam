@@ -97,7 +97,7 @@ fn fetch_token(
   client_secret: String,
   scopes: List(Scope),
   redirect_uri: Option(Uri),
-) -> Result(Nil, TwitchError(error)) {
+) -> Result(Nil, TwitchError) {
   // ) -> Result(AccessToken, TwitchError(TwitchApiResponse(AccessToken))) {
   // ) -> Result(AccessToken, TwitchError(AuthError(error))) {
   // use token_fetcher <- result.try(token_fetcher.new(

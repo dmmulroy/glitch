@@ -99,7 +99,7 @@ pub fn query_params_from_get_users_request(
 pub fn get_users(
   client: Client,
   request: GetUsersRequest,
-) -> Result(List(User), TwitchError(error)) {
+) -> Result(List(User), TwitchError) {
   let request =
     api_request.new_helix_request()
     |> api_request.set_body("")

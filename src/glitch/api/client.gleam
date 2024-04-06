@@ -35,7 +35,7 @@ pub fn set_client_id(client, client_id: String) -> Client {
   Client(..client, client_id: client_id)
 }
 
-pub fn client_secret(client: Client) -> Result(String, TwitchError(error)) {
+pub fn client_secret(client: Client) -> Result(String, TwitchError) {
   option.to_result(client.client_secret, ClientError(NoClientSecret))
 }
 
@@ -45,7 +45,7 @@ pub fn set_client_secret(client, client_secret: String) -> Client {
 
 pub fn client_credentials(
   client: Client,
-) -> Result(#(String, String), TwitchError(error)) {
+) -> Result(#(String, String), TwitchError) {
   use client_secret <- result.try(option.to_result(
     client.client_secret,
     ClientError(NoClientSecret),
@@ -54,7 +54,7 @@ pub fn client_credentials(
   Ok(#(client.client_id, client_secret))
 }
 
-pub fn access_token(client: Client) -> Result(String, TwitchError(error)) {
+pub fn access_token(client: Client) -> Result(String, TwitchError) {
   option.to_result(client.access_token, ClientError(NoAccessToken))
 }
 
@@ -62,7 +62,7 @@ pub fn set_access_token(client, access_token: String) -> Client {
   Client(..client, access_token: Some(access_token))
 }
 
-pub fn refresh_token(client: Client) -> Result(String, TwitchError(error)) {
+pub fn refresh_token(client: Client) -> Result(String, TwitchError) {
   option.to_result(client.refresh_token, ClientError(NoRefreshToken))
 }
 
@@ -70,7 +70,7 @@ pub fn set_refresh_token(client, refresh_token: String) -> Client {
   Client(..client, refresh_token: Some(refresh_token))
 }
 
-fn headers(client: Client) -> Result(List(Header), TwitchError(error)) {
+fn headers(client: Client) -> Result(List(Header), TwitchError) {
   let client_id = client.client_id
 
   use access_token <- result.try(option.to_result(
@@ -90,7 +90,7 @@ fn headers(client: Client) -> Result(List(Header), TwitchError(error)) {
 pub fn get(
   client: Client,
   request: TwitchApiRequest,
-) -> Result(TwitchApiResponse(String), TwitchError(error)) {
+) -> Result(TwitchApiResponse(String), TwitchError) {
   use headers <- result.try(headers(client))
 
   request
@@ -102,7 +102,7 @@ pub fn get(
 pub fn post(
   client: Client,
   request: TwitchApiRequest,
-) -> Result(TwitchApiResponse(String), TwitchError(error)) {
+) -> Result(TwitchApiResponse(String), TwitchError) {
   use headers <- result.try(headers(client))
 
   request

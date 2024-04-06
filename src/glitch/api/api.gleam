@@ -6,7 +6,7 @@ import glitch/error/error.{type TwitchError, RequestError}
 
 pub fn send(
   request: TwitchApiRequest,
-) -> Result(TwitchApiResponse(String), TwitchError(error)) {
+) -> Result(TwitchApiResponse(String), TwitchError) {
   request
   |> api_request.to_http_request
   |> httpc.send

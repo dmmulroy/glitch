@@ -14,7 +14,6 @@ import prng/seed
 import shellout
 import glitch/auth/redirect_server
 import glitch/api/auth
-import glitch/api/api_response.{type TwitchApiResponse}
 import glitch/error/error.{
   type AuthError, type TwitchError, AuthError, TokenFetcherFetchError,
   TokenFetcherStartError,
@@ -22,8 +21,6 @@ import glitch/error/error.{
 import glitch/types/access_token.{type AccessToken}
 import glitch/types/scope.{type Scope}
 import glitch/extended/uri_ext
-
-const uri = "https://id.twitch.tv/oauth2/authorize?response_type=code&client_id=cew8p1bv247ua1czt6a1okon8ejy1r&redirect_uri=http://localhost:3000/redirect&scope=user%3Awrite%3Achat+user%3Abot+channel%3Abot&state=foobar"
 
 const base_authorization_uri = Uri(
   Some("https"),
@@ -49,11 +46,7 @@ pub type TokenFetcher =
   Subject(Message)
 
 pub opaque type Message {
-  Fetch(
-    reply_to: Subject(
-      Result(AccessToken, TwitchError(TwitchApiResponse(AccessToken))),
-    ),
-  )
+  Fetch(reply_to: Subject(Result(AccessToken, TwitchError)))
 }
 
 pub opaque type TokenFetcherState {
@@ -70,7 +63,7 @@ pub fn new(
   client_secret: String,
   scopes: List(Scope),
   redirect_uri: Option(Uri),
-) -> Result(TokenFetcher, TwitchError(TwitchApiResponse(AccessToken))) {
+) -> Result(TokenFetcher, TwitchError) {
   let state = State(client_id, client_secret, redirect_uri, scopes)
 
   actor.start(state, handle_message)
@@ -114,18 +107,14 @@ fn handle_message(
 
 pub fn fetch(
   token_fetcher: TokenFetcher,
-  reply_to: Subject(
-    Result(AccessToken, TwitchError(TwitchApiResponse(AccessToken))),
-  ),
+  reply_to: Subject(Result(AccessToken, TwitchError)),
 ) {
   actor.send(token_fetcher, Fetch(reply_to))
 }
 
 pub fn handle_fetch(
   state: TokenFetcherState,
-  reply_to: Subject(
-    Result(AccessToken, TwitchError(TwitchApiResponse(AccessToken))),
-  ),
+  reply_to: Subject(Result(AccessToken, TwitchError)),
 ) {
   let mailbox: Subject(String) = process.new_subject()
 

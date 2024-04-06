@@ -2,7 +2,7 @@ import gleam/result
 import gleam/uri.{type Uri}
 import gleam/http.{Post}
 import glitch/api/api
-import glitch/api/api_response.{type TwitchApiResponse}
+import glitch/api/api_response
 import glitch/api/api_request
 import glitch/error/error.{type TwitchError, AuthError, InvalidGetTokenRequest}
 import glitch/types/access_token.{type AccessToken}
@@ -93,7 +93,7 @@ fn get_token_request_to_form_data(get_token_request: GetTokenRequest) -> String 
 
 pub fn get_token(
   get_token_request: GetTokenRequest,
-) -> Result(AccessToken, TwitchError(TwitchApiResponse(AccessToken))) {
+) -> Result(AccessToken, TwitchError) {
   case get_token_request {
     RefreshTokenGrant(_, _, _, _) -> Error(AuthError(InvalidGetTokenRequest))
     _ -> {
@@ -117,7 +117,7 @@ pub fn get_token(
 
 pub fn refresh_token(
   get_token_request: GetTokenRequest,
-) -> Result(AccessToken, TwitchError(TwitchApiResponse(AccessToken))) {
+) -> Result(AccessToken, TwitchError) {
   case get_token_request {
     RefreshTokenGrant(_, _, _, _) -> {
       let body =

@@ -43,7 +43,7 @@ fn error_decoder() -> Decoder(TwitchErrorResponse) {
 pub fn get_data(
   api_response: TwitchApiResponse(String),
   data_decoder: Decoder(data),
-) -> Result(data, TwitchError(error)) {
+) -> Result(data, TwitchError) {
   let body =
     api_response
     |> get_body
@@ -65,7 +65,7 @@ pub fn get_data(
 pub fn get_list_data(
   api_response: TwitchApiResponse(String),
   data_decoder: Decoder(data),
-) -> Result(List(data), TwitchError(error)) {
+) -> Result(List(data), TwitchError) {
   let body =
     api_response
     |> get_body

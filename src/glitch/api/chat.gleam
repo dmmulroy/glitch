@@ -48,7 +48,7 @@ fn send_message_request_to_json(request: SendMessageRequest) -> Json {
 pub fn send_message(
   client: Client,
   request: SendMessageRequest,
-) -> Result(List(Message), TwitchError(error)) {
+) -> Result(List(Message), TwitchError) {
   let body =
     request
     |> send_message_request_to_json
