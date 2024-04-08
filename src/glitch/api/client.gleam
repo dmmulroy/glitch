@@ -1,84 +1,34 @@
-import gleam/option.{type Option, Some}
 import gleam/result
 import gleam/http.{type Header, Get, Post}
 import glitch/api/api
 import glitch/api/api_request.{type TwitchApiRequest}
 import glitch/api/api_response.{type TwitchApiResponse}
-import glitch/error.{
-  type ClientError, type TwitchError, ClientError, NoAccessToken,
-  NoClientSecret, NoRefreshToken,
-}
+import glitch/auth/auth_provider.{type AuthProvider}
+import glitch/types/access_token.{type AccessToken}
+import glitch/error.{type TwitchError}
 
 pub opaque type Client {
-  Client(
-    client_id: String,
-    client_secret: Option(String),
-    access_token: Option(String),
-    refresh_token: Option(String),
-  )
+  Client(auth_provider: AuthProvider)
 }
 
-pub fn new(
-  client_id client_id: String,
-  client_secret client_secret: Option(String),
-  access_token access_token: Option(String),
-  refresh_token refresh_token: Option(String),
-) -> Client {
-  Client(client_id, client_secret, access_token, refresh_token)
+pub fn new(auth_provider: AuthProvider) -> Client {
+  Client(auth_provider)
 }
 
 pub fn client_id(client: Client) -> String {
-  client.client_id
+  auth_provider.client_id(client.auth_provider)
 }
 
-pub fn set_client_id(client, client_id: String) -> Client {
-  Client(..client, client_id: client_id)
-}
-
-pub fn client_secret(client: Client) -> Result(String, TwitchError) {
-  option.to_result(client.client_secret, ClientError(NoClientSecret))
-}
-
-pub fn set_client_secret(client, client_secret: String) -> Client {
-  Client(..client, client_secret: Some(client_secret))
-}
-
-pub fn client_credentials(
-  client: Client,
-) -> Result(#(String, String), TwitchError) {
-  use client_secret <- result.try(option.to_result(
-    client.client_secret,
-    ClientError(NoClientSecret),
-  ))
-
-  Ok(#(client.client_id, client_secret))
-}
-
-pub fn access_token(client: Client) -> Result(String, TwitchError) {
-  option.to_result(client.access_token, ClientError(NoAccessToken))
-}
-
-pub fn set_access_token(client, access_token: String) -> Client {
-  Client(..client, access_token: Some(access_token))
-}
-
-pub fn refresh_token(client: Client) -> Result(String, TwitchError) {
-  option.to_result(client.refresh_token, ClientError(NoRefreshToken))
-}
-
-pub fn set_refresh_token(client, refresh_token: String) -> Client {
-  Client(..client, refresh_token: Some(refresh_token))
+pub fn access_token(client: Client) -> Result(AccessToken, TwitchError) {
+  auth_provider.access_token(client.auth_provider)
 }
 
 fn headers(client: Client) -> Result(List(Header), TwitchError) {
-  let client_id = client.client_id
+  let client_id = auth_provider.client_id(client.auth_provider)
 
-  use access_token <- result.try(option.to_result(
-    client.access_token,
-    ClientError(NoAccessToken),
-  ))
+  use access_token <- result.try(access_token(client))
 
-  let authorization = "Bearer " <> access_token
+  let authorization = "Bearer " <> access_token.token(access_token)
 
   Ok([
     #("Authorization", authorization),
