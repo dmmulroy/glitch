@@ -1,14 +1,16 @@
+import gleam/dynamic.{type Dynamic}
 import gleam/result
 import gleam/uri.{type Uri}
-import gleam/http.{Post}
+import gleam/http.{Get, Post}
 import glitch/api/api
 import glitch/api/api_response
 import glitch/api/api_request
-import glitch/error/error.{type TwitchError, AuthError, InvalidGetTokenRequest}
+import glitch/error.{type TwitchError, AuthError, InvalidGetTokenRequest}
 import glitch/types/access_token.{type AccessToken}
 import glitch/types/grant.{
   type GrantType, AuthorizationCode, ClientCredentials, RefreshToken,
 }
+import glitch/types/scope.{type Scope}
 
 pub opaque type GetTokenRequest {
   AuthorizationCodeGrant(
@@ -137,4 +139,40 @@ pub fn refresh_token(
     }
     _ -> Error(AuthError(InvalidGetTokenRequest))
   }
+}
+
+pub type ValidateTokenResponse {
+  ValidateTokenResponse(
+    client_id: String,
+    login: String,
+    scopes: List(Scope),
+    user_id: String,
+    expires_in: Int,
+  )
+}
+
+fn validate_token_response_decoder() {
+  fn(data: Dynamic) {
+    data
+    |> dynamic.decode5(
+      ValidateTokenResponse,
+      dynamic.field("client_id", dynamic.string),
+      dynamic.field("login", dynamic.string),
+      dynamic.field("scopes", dynamic.list(scope.decoder())),
+      dynamic.field("user_id", dynamic.string),
+      dynamic.field("expires_in", dynamic.int),
+    )
+  }
+}
+
+pub fn validate_token(access_token: AccessToken) {
+  api_request.new_auth_request()
+  |> api_request.set_path("oauth2/validate")
+  |> api_request.set_header(#(
+    "Authorization",
+    "OAuth " <> access_token.token(access_token),
+  ))
+  |> api_request.set_method(Get)
+  |> api.send
+  |> result.try(api_response.get_data(_, validate_token_response_decoder()))
 }

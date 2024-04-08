@@ -4,7 +4,7 @@ import gleam/http.{type Header, Get, Post}
 import glitch/api/api
 import glitch/api/api_request.{type TwitchApiRequest}
 import glitch/api/api_response.{type TwitchApiResponse}
-import glitch/error/error.{
+import glitch/error.{
   type ClientError, type TwitchError, ClientError, NoAccessToken,
   NoClientSecret, NoRefreshToken,
 }

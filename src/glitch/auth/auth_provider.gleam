@@ -1,120 +1,169 @@
-import gleam/function
 import gleam/result
 import gleam/option.{type Option, None, Some}
-import gleam/uri.{type Uri}
-import gleam/erlang/process.{type Subject}
-import glitch/auth/token_fetcher.{type TokenFetcher}
-import glitch/api/api_response.{type TwitchApiResponse}
-import glitch/error/error.{
-  type AuthError, type TwitchError, AuthError, TokenFetcherFetchError,
-  TokenFetcherStartError,
+import glitch/api/auth.{type GetTokenRequest}
+import glitch/error.{
+  type AuthError, type TwitchError, AccessTokenExpired, AuthError,
+  InvalidAuthProvider, TokenFetcherFetchError, ValidateTokenError,
 }
 import glitch/types/access_token.{type AccessToken}
-import glitch/types/scope.{type Scope}
 
-// https://github.com/twurple/twurple/blob/main/packages/auth/src/helpers.ts#L60
 pub opaque type AuthProvider {
   ClientCredentialsAuthProvider(
     access_token: Option(AccessToken),
     client_id: String,
     client_secret: String,
-    scopes: List(Scope),
-    redirect_uri: Option(Uri),
-    token_fetcher: Option(TokenFetcher),
   )
   RefreshingAuthProvider(
-    access_token: Option(AccessToken),
-    client_id: String,
-    client_secret: String,
-    scopes: List(Scope),
-    redirect_uri: Option(Uri),
-    token_fetcher: Option(TokenFetcher),
-  )
-  StaticAuthProvider(
     access_token: AccessToken,
     client_id: String,
-    scopes: List(Scope),
+    client_secret: String,
   )
-}
-
-pub type AuthProviderError {
-  AuthProviderError
+  StaticAuthProvider(access_token: AccessToken, client_id: String)
 }
 
 pub fn new_client_credentials_provider(
   client_id: String,
   client_secret: String,
-  scopes: List(Scope),
-  redirect_uri: Option(Uri),
 ) -> AuthProvider {
-  ClientCredentialsAuthProvider(
-    None,
-    client_id,
-    client_secret,
-    scopes,
-    redirect_uri,
-    None,
-  )
+  ClientCredentialsAuthProvider(None, client_id, client_secret)
 }
 
 pub fn new_static_provider(
   access_token: AccessToken,
   client_id: String,
-  scopes: List(Scope),
 ) -> AuthProvider {
-  StaticAuthProvider(access_token, client_id, scopes)
+  StaticAuthProvider(access_token, client_id)
 }
 
 pub fn new_refreshing_provider(
-  access_token: Option(AccessToken),
+  access_token: AccessToken,
   client_id: String,
   client_secret: String,
-  scopes: List(Scope),
-  redirect_uri: Option(Uri),
 ) -> AuthProvider {
-  RefreshingAuthProvider(
-    access_token,
-    client_id,
-    client_secret,
-    scopes,
-    redirect_uri,
-    None,
-  )
+  RefreshingAuthProvider(access_token, client_id, client_secret)
 }
 
 pub fn get_access_token(
   auth_provider: AuthProvider,
-) -> Result(AccessToken, AuthProviderError) {
+) -> Result(AccessToken, TwitchError) {
   case auth_provider {
-    ClientCredentialsAuthProvider(Some(access_token), ..) -> Ok(access_token)
-    ClientCredentialsAuthProvider(None, ..) -> todo as "fetch token"
-    _ -> Error(AuthProviderError)
+    ClientCredentialsAuthProvider(access_token, client_id, client_secret) ->
+      get_access_token_for_client_credential_provider(
+        access_token,
+        client_id,
+        client_secret,
+      )
+    RefreshingAuthProvider(access_token, client_id, client_secret) -> {
+      get_access_token_for_refreshing_provider(
+        access_token,
+        client_id,
+        client_secret,
+      )
+    }
+    _ -> Error(AuthError(InvalidAuthProvider))
   }
 }
 
-fn fetch_token(
+fn get_access_token_for_client_credential_provider(
+  access_token: Option(AccessToken),
   client_id: String,
   client_secret: String,
-  scopes: List(Scope),
-  redirect_uri: Option(Uri),
-) -> Result(Nil, TwitchError) {
-  // ) -> Result(AccessToken, TwitchError(TwitchApiResponse(AccessToken))) {
-  // ) -> Result(AccessToken, TwitchError(AuthError(error))) {
-  // use token_fetcher <- result.try(token_fetcher.new(
-  //   client_id,
-  //   client_secret,
-  //   scopes,
-  //   redirect_uri,
-  // ))
+) -> Result(AccessToken, TwitchError) {
+  case access_token {
+    None ->
+      fetch_token(auth.new_client_credentials_grant_request(
+        client_id,
+        client_secret,
+      ))
+    Some(access_token) -> {
+      case
+        access_token.is_expired(access_token),
+        access_token.needs_validated(access_token)
+      {
+        True, _ -> Error(AuthError(AccessTokenExpired))
+        False, True -> {
+          use validate_token_response <- result.try(
+            auth.validate_token(access_token)
+            |> result.map_error(fn(error) {
+              AuthError(ValidateTokenError(error))
+            }),
+          )
 
-  Ok(Nil)
-  // let mailbox = process.new_subject()
-  //
-  // token_fetcher.fetch(token_fetcher, mailbox)
-  //
-  // process.new_selector()
-  // |> process.selecting(mailbox, function.identity)
-  // |> process.select_forever
+          Ok(access_token.set_expires_in(
+            access_token,
+            validate_token_response.expires_in,
+          ))
+        }
+        False, False -> {
+          Ok(access_token)
+        }
+      }
+    }
+  }
+}
+
+fn get_access_token_for_refreshing_provider(
+  access_token: AccessToken,
+  client_id: String,
+  client_secret: String,
+) -> Result(AccessToken, TwitchError) {
+  case
+    access_token.is_expired(access_token),
+    access_token.needs_validated(access_token)
+  {
+    True, True -> {
+      use _ <- result.try(
+        auth.validate_token(access_token)
+        |> result.map_error(fn(error) { AuthError(ValidateTokenError(error)) }),
+      )
+
+      use refresh_token <- result.try(access_token.refresh_token(access_token))
+
+      let refresh_token_request =
+        auth.new_refresh_token_grant_request(
+          client_id,
+          client_secret,
+          refresh_token,
+        )
+
+      auth.refresh_token(refresh_token_request)
+      |> result.map_error(fn(error) { AuthError(ValidateTokenError(error)) })
+    }
+    True, False -> {
+      use refresh_token <- result.try(access_token.refresh_token(access_token))
+
+      let refresh_token_request =
+        auth.new_refresh_token_grant_request(
+          client_id,
+          client_secret,
+          refresh_token,
+        )
+
+      auth.refresh_token(refresh_token_request)
+    }
+    False, True -> {
+      use validate_token_response <- result.try(
+        auth.validate_token(access_token)
+        |> result.map_error(fn(error) { AuthError(ValidateTokenError(error)) }),
+      )
+
+      Ok(access_token.set_expires_in(
+        access_token,
+        validate_token_response.expires_in,
+      ))
+    }
+    False, False -> {
+      Ok(access_token)
+    }
+  }
+}
+
+fn fetch_token(request: GetTokenRequest) {
+  request
+  |> auth.get_token
+  |> result.map_error(fn(error) {
+    AuthError(TokenFetcherFetchError(cause: error))
+  })
 }
 // pub fn get_scopes() -> List(Scope) {
 //   todo

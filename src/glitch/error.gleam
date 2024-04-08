@@ -7,7 +7,7 @@ import gleam/json.{type DecodeError}
 pub type TwitchError {
   AuthError(AuthError)
   ClientError(ClientError)
-  InvalidResponseType(wanted: String, found: String)
+  InvalidResponseType(expected: String, received: String)
   RequestError(Dynamic)
   ResponseDecodeError(DecodeError)
   ResponseError(status: Int, message: String)
@@ -20,7 +20,11 @@ pub type ClientError {
 }
 
 pub type AuthError {
+  AccessTokenExpired
+  InvalidAuthProvider
   InvalidGetTokenRequest
+  InvalidAccessToken
   TokenFetcherFetchError(cause: TwitchError)
   TokenFetcherStartError
+  ValidateTokenError(cause: TwitchError)
 }

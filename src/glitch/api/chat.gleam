@@ -5,7 +5,7 @@ import gleam/json.{type DecodeError, type Json}
 import glitch/api/client.{type Client}
 import glitch/api/api_request
 import glitch/api/api_response
-import glitch/error/error.{type TwitchError}
+import glitch/error.{type TwitchError}
 import glitch/extended/json_ext
 
 pub type Message {

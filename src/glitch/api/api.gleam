@@ -2,7 +2,7 @@ import gleam/result
 import gleam/httpc
 import glitch/api/api_request.{type TwitchApiRequest}
 import glitch/api/api_response.{type TwitchApiResponse}
-import glitch/error/error.{type TwitchError, RequestError}
+import glitch/error.{type TwitchError, RequestError}
 
 pub fn send(
   request: TwitchApiRequest,

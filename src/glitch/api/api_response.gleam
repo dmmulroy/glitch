@@ -3,7 +3,7 @@ import gleam/json
 import gleam/result
 import gleam/http.{type Header}
 import gleam/http/response.{type Response, Response}
-import glitch/error/error.{type TwitchError, ResponseDecodeError, ResponseError}
+import glitch/error.{type TwitchError, ResponseDecodeError, ResponseError}
 
 pub opaque type TwitchApiResponse(data) {
   TwitchApiResponse(Response(data))

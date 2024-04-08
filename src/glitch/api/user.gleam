@@ -9,7 +9,7 @@ import glitch/api/api_request
 import glitch/api/api_response
 import glitch/extended/dynamic_ext
 import glitch/extended/json_ext
-import glitch/error/error.{type TwitchError}
+import glitch/error.{type TwitchError}
 
 pub type User {
   User(

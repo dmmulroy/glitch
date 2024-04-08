@@ -14,7 +14,7 @@ import prng/seed
 import shellout
 import glitch/auth/redirect_server
 import glitch/api/auth
-import glitch/error/error.{
+import glitch/error.{
   type AuthError, type TwitchError, AuthError, TokenFetcherFetchError,
   TokenFetcherStartError,
 }
@@ -108,11 +108,11 @@ fn handle_message(
 pub fn fetch(
   token_fetcher: TokenFetcher,
   reply_to: Subject(Result(AccessToken, TwitchError)),
-) {
+) -> Nil {
   actor.send(token_fetcher, Fetch(reply_to))
 }
 
-pub fn handle_fetch(
+fn handle_fetch(
   state: TokenFetcherState,
   reply_to: Subject(Result(AccessToken, TwitchError)),
 ) {
@@ -161,7 +161,9 @@ pub fn handle_fetch(
 
   let response =
     auth.get_token(request)
-    |> result.map_error(fn(error) { AuthError(TokenFetcherFetchError(error)) })
+    |> result.map_error(fn(error) {
+      AuthError(TokenFetcherFetchError(cause: error))
+    })
 
   redirect_server.shutdown(server)
 
