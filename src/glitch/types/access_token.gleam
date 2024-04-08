@@ -1,4 +1,5 @@
 import gleam/dynamic.{type Decoder, type Dynamic}
+import gleam/option.{type Option}
 import gleam/result
 import gleam/erlang
 import glitch/error.{type TwitchError, AuthError, InvalidAccessToken}
@@ -21,7 +22,7 @@ pub opaque type AccessToken {
   )
 }
 
-pub type RawAccessToken {
+type RawAccessToken {
   RawAppAccessToken(access_token: String, expires_in: Int)
   RawUserAccessToken(
     access_token: String,
@@ -66,6 +67,24 @@ fn from_raw_access_token(raw_access_token: RawAccessToken) -> AccessToken {
         last_validated_at: now,
       )
   }
+}
+
+pub fn new_user_access_token(
+  expires_in: Int,
+  obtained_at: Int,
+  refresh_token: String,
+  scopes: List(Scope),
+  token: String,
+  last_validated_at: Option(Int),
+) -> AccessToken {
+  UserAccessToken(
+    expires_in,
+    obtained_at,
+    refresh_token,
+    scopes,
+    token,
+    option.unwrap(last_validated_at, 0),
+  )
 }
 
 pub fn token(access_token: AccessToken) -> String {
