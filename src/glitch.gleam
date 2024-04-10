@@ -7,6 +7,7 @@ import glitch/api/client
 import glitch/api/chat.{SendMessageRequest}
 import glitch/auth/auth_provider
 import glitch/auth/token_fetcher
+import glitch/event_sub/event_sub
 import glitch/types/access_token
 import glitch/types/scope
 
@@ -65,6 +66,14 @@ pub fn test_chat() {
   let assert Ok(_) = chat.send_message(client, send_msg_request)
 }
 
+pub fn test_event_sub() {
+  let assert Ok(es) = event_sub.new()
+
+  let _ = event_sub.start(es)
+
+  process.sleep_forever()
+}
+
 pub fn main() {
-  test_chat()
+  test_event_sub()
 }
