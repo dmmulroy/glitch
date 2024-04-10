@@ -1,27 +1,17 @@
-import gleam/bytes_builder
 import gleam/function
+import gleam/io
 import gleam/option.{type Option, None, Some}
-import gleam/uri.{type Uri, Uri}
 import gleam/erlang/process.{type Subject}
-import gleam/http.{Get}
-import gleam/http/request.{type Request, Request}
-import gleam/http/response.{type Response}
 import gleam/otp/actor.{type StartError}
-import gleam/otp/supervisor.{type Message as SupervisorMessage}
-import mist.{type Connection, type ResponseData}
+import gleam/http/request
+import stratus
 
-const default_ws_uri = Uri(
-  Some("http"),
-  None,
-  Some("localhost"),
-  Some(3001),
-  "ws",
-  None,
-  None,
-)
-
-pub type WebsocketServer {
-  State(mist: Option(Subject(SupervisorMessage)), status: Status, ws_uri: Uri)
+pub opaque type WebsocketServer {
+  State(
+    mailbox: Subject(TwitchMessage),
+    stratus: Option(Subject(stratus.InternalMessage(Nil))),
+    status: Status,
+  )
 }
 
 pub type Status {
@@ -29,33 +19,45 @@ pub type Status {
   Stopped
 }
 
+pub type TwitchMessage {
+  Foo
+  Bar
+  Baz
+}
+
 pub type Message {
   Start
   Shutdown
 }
 
+// Todo: Look into why we need https/wss
+const event_sub_uri = "https://eventsub.wss.twitch.tv/ws"
+
 pub fn new(
-  parent_mailbox: Subject(Subject(Message)),
-  ws_uri: Option(Uri),
+  parent_mailbox: Subject(Subject(TwitchMessage)),
 ) -> Result(Subject(Message), StartError) {
   actor.start_spec(actor.Spec(
     init: fn() {
-      let mailbox = process.new_subject()
+      let websocket_server_subject: Subject(Message) = process.new_subject()
+      let mailbox: Subject(TwitchMessage) = process.new_subject()
 
       process.send(parent_mailbox, mailbox)
 
       let selector =
         process.new_selector()
-        |> process.selecting(mailbox, function.identity)
+        |> process.selecting(websocket_server_subject, function.identity)
 
-      let initial_state =
-        State(None, Stopped, option.unwrap(ws_uri, default_ws_uri))
+      let initial_state = State(mailbox, None, Stopped)
 
       actor.Ready(initial_state, selector)
     },
     init_timeout: 1000,
     loop: handle_message,
   ))
+}
+
+pub fn start(websocket_server: Subject(Message)) -> Nil {
+  actor.send(websocket_server, Start)
 }
 
 fn handle_message(message: Message, state: WebsocketServer) {
@@ -65,30 +67,39 @@ fn handle_message(message: Message, state: WebsocketServer) {
   }
 }
 
-fn handle_start(state: WebsocketServer) {
-  let port = option.unwrap(state.ws_uri.port, 3000)
-
-  let assert Ok(mist_subject) =
-    mist.new(new_router(state))
-    |> mist.port(port)
-    |> mist.start_http
-
-  actor.continue(State(..state, mist: Some(mist_subject), status: Running))
+pub type Msg {
+  Close
+  TimeUpdated(String)
 }
 
-fn new_router(state: WebsocketServer) {
-  let redirect_path = state.ws_uri.path
+fn handle_start(state: WebsocketServer) {
+  let assert Ok(req) = request.to(event_sub_uri)
 
-  let router = fn(req: Request(Connection)) -> Response(ResponseData) {
-    case req.method, request.path_segments(req) {
-      Get, [path] if path == redirect_path ->
-        response.new(200)
-        |> response.set_body(mist.Bytes(bytes_builder.new()))
-      _, _ ->
-        response.new(404)
-        |> response.set_body(mist.Bytes(bytes_builder.new()))
-    }
-  }
+  let assert Ok(websocket_client_subject) =
+    stratus.websocket(
+      request: req,
+      init: fn() { #(Nil, None) },
+      loop: fn(msg, state, _conn) {
+        case msg {
+          stratus.Text(msg) -> {
+            io.debug(msg)
+            actor.continue(state)
+          }
+          stratus.User(msg) -> {
+            io.debug(msg)
+            actor.continue(state)
+          }
+          stratus.Binary(msg) -> {
+            io.debug(msg)
+            actor.continue(state)
+          }
+        }
+      },
+    )
+    |> stratus.on_close(fn(_state) { io.println("rawhat is a legend") })
+    |> stratus.initialize
 
-  router
+  actor.continue(
+    State(..state, stratus: Some(websocket_client_subject), status: Running),
+  )
 }

@@ -24,6 +24,7 @@ mist = "~> 1.0"
 gleam_erlang = "~> 0.25"
 shellout = "~> 1.6"
 prng = "~> 3.0"
+stratus = "~> 0.5"
 
 [dev-dependencies]
 gleeunit = "~> 1.0"

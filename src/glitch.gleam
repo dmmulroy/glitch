@@ -67,7 +67,7 @@ pub fn test_chat() {
 }
 
 pub fn test_event_sub() {
-  let assert Ok(es) = event_sub.new()
+  let es = event_sub.new()
 
   let _ = event_sub.start(es)
 
@@ -75,6 +75,6 @@ pub fn test_event_sub() {
 }
 
 pub fn main() {
-  test_chat()
-  // test_event_sub()
+  // test_chat()
+  test_event_sub()
 }
