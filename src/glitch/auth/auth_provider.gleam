@@ -123,34 +123,7 @@ fn access_token_for_refreshing_provider(
     access_token.is_expired(access_token),
     access_token.needs_validated(access_token)
   {
-    True, True -> {
-      use _ <- result.try(
-        auth.validate_token(access_token)
-        |> result.map_error(fn(error) { AuthError(ValidateTokenError(error)) }),
-      )
-
-      use refresh_token <- result.try(access_token.refresh_token(access_token))
-
-      let refresh_token_request =
-        auth.new_refresh_token_grant_request(
-          client_id,
-          client_secret,
-          refresh_token,
-        )
-
-      use refreshed_token <- result.try(auth.refresh_token(
-        refresh_token_request,
-      ))
-
-      case on_refresh {
-        None -> Ok(refreshed_token)
-        Some(on_refresh) -> {
-          on_refresh(refreshed_token)
-          Ok(refreshed_token)
-        }
-      }
-    }
-    True, False -> {
+    True, _ -> {
       use refresh_token <- result.try(access_token.refresh_token(access_token))
 
       let refresh_token_request =

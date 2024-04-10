@@ -75,5 +75,6 @@ pub fn test_event_sub() {
 }
 
 pub fn main() {
-  test_event_sub()
+  test_chat()
+  // test_event_sub()
 }
