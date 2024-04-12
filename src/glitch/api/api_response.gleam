@@ -86,3 +86,39 @@ pub fn get_list_data(
       |> result.map_error(ResponseDecodeError)
   }
 }
+
+pub type EventSubData(data) {
+  EventSubData(data: data, total: Int, total_cost: Int, max_total_cost: Int)
+}
+
+fn eventsub_data_decoder(
+  data_decoder: Decoder(data),
+) -> Decoder(EventSubData(data)) {
+  dynamic.decode4(
+    EventSubData,
+    dynamic.field("data", data_decoder),
+    dynamic.field("total", dynamic.int),
+    dynamic.field("total_cost", dynamic.int),
+    dynamic.field("max_total_cost", dynamic.int),
+  )
+}
+
+pub fn get_eventsub_data(
+  api_response: TwitchApiResponse(String),
+  data_decoder: Decoder(data),
+) -> Result(EventSubData(data), TwitchError) {
+  let body =
+    api_response
+    |> get_body
+
+  let error = json.decode(body, error_decoder())
+
+  case error {
+    Ok(TwitchErrorResponse(status, message)) ->
+      Error(ResponseError(status, message))
+    _ ->
+      body
+      |> json.decode(eventsub_data_decoder(data_decoder))
+      |> result.map_error(ResponseDecodeError)
+  }
+}

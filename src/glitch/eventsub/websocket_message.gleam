@@ -4,6 +4,7 @@ import gleam/result
 import gleam/uri.{type Uri}
 import gleam/json.{type DecodeError}
 import glitch/extended/dynamic_ext
+import glitch/types/subscription.{type SubscriptionType}
 
 pub type WebSocketMessage {
   WelcomeMessage(metadata: Metadata, payload: WelcomeMessagePayload)
@@ -88,8 +89,7 @@ pub type SubscriptionMetadata {
     message_id: String,
     message_type: MessageType,
     message_timestamp: String,
-    // TODO: Create SubscriptType 
-    subscription_type: String,
+    subscription_type: SubscriptionType,
     subscription_version: String,
   )
 }

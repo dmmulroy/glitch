@@ -1,5 +1,7 @@
-import gleam/dynamic.{type Decoder}
-import gleam/json.{type DecodeError as JsonDecodeError, type Json}
+import gleam/dynamic.{type Decoder, DecodeError}
+import gleam/json.{
+  type DecodeError as JsonDecodeError, type Json, UnexpectedFormat,
+}
 import gleam/result
 
 pub type SubscriptionType {
@@ -77,12 +79,9 @@ pub type SubscriptionType {
   WhisperReceived
 }
 
-pub type SubscriptionTypeError {
-  InvalidSubscriptionType(String)
-  DecodeError(JsonDecodeError)
-}
-
-pub fn to_string(subscription_type: SubscriptionType) -> String {
+pub fn subscription_type_to_string(
+  subscription_type: SubscriptionType,
+) -> String {
   case subscription_type {
     AutomodMessageHold -> "automod.message.hold"
     AutomodMessageUpdate -> "automod.message.update"
@@ -164,9 +163,9 @@ pub fn to_string(subscription_type: SubscriptionType) -> String {
   }
 }
 
-pub fn from_string(
+pub fn subscription_type_from_string(
   str: String,
-) -> Result(SubscriptionType, SubscriptionTypeError) {
+) -> Result(SubscriptionType, Nil) {
   case str {
     "automod.message.hold" -> Ok(AutomodMessageHold)
     "automod.message.update" -> Ok(AutomodMessageUpdate)
@@ -246,16 +245,16 @@ pub fn from_string(
     "user.authorization.revoke" -> Ok(UserAuthorizationRevoke)
     "user.update" -> Ok(UserUpdate)
     "user.whisper.message" -> Ok(WhisperReceived)
-    _ -> Error(InvalidSubscriptionType(str))
+    _ -> Error(Nil)
   }
 }
 
-pub fn decoder() -> Decoder(SubscriptionType) {
+pub fn subscription_type_decoder() -> Decoder(SubscriptionType) {
   fn(data: dynamic.Dynamic) {
     use string <- result.try(dynamic.string(data))
 
     string
-    |> from_string
+    |> subscription_type_from_string
     |> result.replace_error([
       dynamic.DecodeError(
         expected: "SubscriptionType",
@@ -266,17 +265,91 @@ pub fn decoder() -> Decoder(SubscriptionType) {
   }
 }
 
-pub fn to_json(subscription_type: SubscriptionType) -> Json {
+pub fn subscription_type_to_json(subscription_type: SubscriptionType) -> Json {
   subscription_type
-  |> to_string
+  |> subscription_type_to_string
   |> json.string
 }
 
-pub fn from_json(
+pub fn subscription_type_from_json(
   json_string: String,
-) -> Result(SubscriptionType, SubscriptionTypeError) {
-  json_string
-  |> json.decode(dynamic.string)
-  |> result.map_error(DecodeError)
-  |> result.try(from_string)
+) -> Result(SubscriptionType, JsonDecodeError) {
+  use string <- result.try(json.decode(json_string, dynamic.string))
+
+  string
+  |> subscription_type_from_string
+  |> result.replace_error(
+    UnexpectedFormat([
+      DecodeError(
+        expected: "SubscriptionType",
+        found: "String(" <> json_string <> ")",
+        path: [],
+      ),
+    ]),
+  )
+}
+
+pub type SubscriptionStatus {
+  Enabled
+  WebHookCallbackVerificationPending
+}
+
+pub fn subscription_status_from_string(
+  str: String,
+) -> Result(SubscriptionStatus, Nil) {
+  case str {
+    "enabled" -> Ok(Enabled)
+    "webhook_callback_verification_pending" -> Ok(Enabled)
+    _ -> Error(Nil)
+  }
+}
+
+pub fn subscription_status_to_string(status: SubscriptionStatus) -> String {
+  case status {
+    Enabled -> "enabled"
+    WebHookCallbackVerificationPending ->
+      "webhook_callback_verification_pending"
+  }
+}
+
+pub fn subscription_status_decoder() -> Decoder(SubscriptionStatus) {
+  fn(data: dynamic.Dynamic) {
+    use string <- result.try(dynamic.string(data))
+
+    string
+    |> subscription_status_from_string
+    |> result.replace_error([
+      dynamic.DecodeError(
+        expected: "SubscriptionStatus",
+        found: "String(" <> string <> ")",
+        path: [],
+      ),
+    ])
+  }
+}
+
+pub fn subscription_status_to_json(
+  subscription_status: SubscriptionStatus,
+) -> Json {
+  subscription_status
+  |> subscription_status_to_string
+  |> json.string
+}
+
+pub fn subscription_status_from_json(
+  json_string: String,
+) -> Result(SubscriptionStatus, JsonDecodeError) {
+  use string <- result.try(json.decode(json_string, dynamic.string))
+
+  string
+  |> subscription_status_from_string
+  |> result.replace_error(
+    UnexpectedFormat([
+      DecodeError(
+        expected: "SubscriptionStatus",
+        found: "String(" <> json_string <> ")",
+        path: [],
+      ),
+    ]),
+  )
 }
