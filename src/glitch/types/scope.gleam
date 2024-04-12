@@ -310,10 +310,7 @@ pub fn from_string(str: String) -> Result(Scope, ScopeError) {
 
 pub fn decoder() -> Decoder(Scope) {
   fn(data: dynamic.Dynamic) {
-    use string <- result.try(
-      data
-      |> dynamic.string,
-    )
+    use string <- result.try(dynamic.string(data))
 
     string
     |> from_string

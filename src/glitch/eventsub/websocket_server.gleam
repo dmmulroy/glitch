@@ -5,10 +5,11 @@ import gleam/erlang/process.{type Subject}
 import gleam/otp/actor.{type StartError}
 import gleam/http/request
 import stratus
+import glitch/eventsub/websocket_message.{type WebSocketMessage}
 
-pub opaque type WebsocketServer {
+pub opaque type WebSockerServer {
   State(
-    mailbox: Subject(TwitchMessage),
+    mailbox: Subject(WebSocketMessage),
     stratus: Option(Subject(stratus.InternalMessage(Nil))),
     status: Status,
   )
@@ -19,27 +20,21 @@ pub type Status {
   Stopped
 }
 
-pub type TwitchMessage {
-  Foo
-  Bar
-  Baz
-}
-
 pub type Message {
   Start
   Shutdown
 }
 
 // Todo: Look into why we need https/wss
-const event_sub_uri = "https://eventsub.wss.twitch.tv/ws"
+const eventsub_uri = "https://eventsub.wss.twitch.tv/ws"
 
 pub fn new(
-  parent_mailbox: Subject(Subject(TwitchMessage)),
+  parent_mailbox: Subject(Subject(WebSocketMessage)),
 ) -> Result(Subject(Message), StartError) {
   actor.start_spec(actor.Spec(
     init: fn() {
       let websocket_server_subject: Subject(Message) = process.new_subject()
-      let mailbox: Subject(TwitchMessage) = process.new_subject()
+      let mailbox: Subject(WebSocketMessage) = process.new_subject()
 
       process.send(parent_mailbox, mailbox)
 
@@ -60,7 +55,7 @@ pub fn start(websocket_server: Subject(Message)) -> Nil {
   actor.send(websocket_server, Start)
 }
 
-fn handle_message(message: Message, state: WebsocketServer) {
+fn handle_message(message: Message, state: WebSockerServer) {
   case message {
     Shutdown -> actor.Stop(process.Normal)
     Start -> handle_start(state)
@@ -72,8 +67,8 @@ pub type Msg {
   TimeUpdated(String)
 }
 
-fn handle_start(state: WebsocketServer) {
-  let assert Ok(req) = request.to(event_sub_uri)
+fn handle_start(state: WebSockerServer) {
+  let assert Ok(req) = request.to(eventsub_uri)
 
   let assert Ok(websocket_client_subject) =
     stratus.websocket(
@@ -82,14 +77,19 @@ fn handle_start(state: WebsocketServer) {
       loop: fn(msg, state, _conn) {
         case msg {
           stratus.Text(msg) -> {
+            io.println("Text")
             io.debug(msg)
+            let foo = websocket_message.from_json(msg)
+            io.debug(foo)
             actor.continue(state)
           }
           stratus.User(msg) -> {
+            io.println("User")
             io.debug(msg)
             actor.continue(state)
           }
           stratus.Binary(msg) -> {
+            io.println("Binary")
             io.debug(msg)
             actor.continue(state)
           }

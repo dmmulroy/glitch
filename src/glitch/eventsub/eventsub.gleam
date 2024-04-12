@@ -4,10 +4,16 @@ import gleam/option.{type Option, None}
 import gleam/result
 import gleam/erlang/process.{type Subject}
 import gleam/otp/supervisor.{type Message as SupervisorMessage}
-import glitch/event_sub/websocket_server
+import glitch/auth/auth_provider.{type AuthProvider}
+import glitch/eventsub/websocket_server
+import glitch/eventsub/websocket_message.{type WebSocketMessage}
 
 pub opaque type EventSub {
-  State(status: Status, mailbox: Option(Subject(SupervisorMessage)))
+  State(
+    auth_provider: AuthProvider,
+    status: Status,
+    mailbox: Option(Subject(SupervisorMessage)),
+  )
 }
 
 pub type Status {
@@ -15,11 +21,11 @@ pub type Status {
   Stopped
 }
 
-pub fn new() {
-  State(Stopped, None)
+pub fn new(auth_provider: AuthProvider) {
+  State(auth_provider, Stopped, None)
 }
 
-pub fn start(_event_sub: EventSub) {
+pub fn start(_eventsub: EventSub) {
   let parent_subject = process.new_subject()
 
   let websocket_server =
@@ -31,7 +37,7 @@ pub fn start(_event_sub: EventSub) {
 
   let assert Ok(_) = supervisor.start(supervisor.add(_, websocket_server))
 
-  let assert Ok(mailbox): Result(Subject(websocket_server.TwitchMessage), Nil) =
+  let assert Ok(mailbox): Result(Subject(WebSocketMessage), Nil) =
     process.receive(parent_subject, 1000)
 
   process.new_selector()
