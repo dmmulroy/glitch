@@ -99,12 +99,8 @@ pub fn get_token(
   case get_token_request {
     RefreshTokenGrant(_, _, _, _) -> Error(AuthError(InvalidGetTokenRequest))
     _ -> {
-      let body =
-        get_token_request
-        |> get_token_request_to_form_data
-
       api_request.new_auth_request()
-      |> api_request.set_body(body)
+      |> api_request.set_body(get_token_request_to_form_data(get_token_request))
       |> api_request.set_path("oauth2/token")
       |> api_request.set_header(#(
         "content-type",
@@ -122,12 +118,8 @@ pub fn refresh_token(
 ) -> Result(AccessToken, TwitchError) {
   case get_token_request {
     RefreshTokenGrant(_, _, _, _) -> {
-      let body =
-        get_token_request
-        |> get_token_request_to_form_data
-
       api_request.new_auth_request()
-      |> api_request.set_body(body)
+      |> api_request.set_body(get_token_request_to_form_data(get_token_request))
       |> api_request.set_path("oauth2/token")
       |> api_request.set_header(#(
         "content-type",

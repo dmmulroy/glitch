@@ -1,6 +1,6 @@
 import gleam/dynamic.{type Decoder}
 import gleam/result
-import gleam/json.{type Json}
+import gleam/json
 import glitch/api/client.{type Client}
 import glitch/api/api_request
 import glitch/api/api_response.{type EventSubData}
@@ -20,7 +20,7 @@ pub type CreateEventSubSubscriptionRequest {
 
 fn send_message_request_to_json(
   request: CreateEventSubSubscriptionRequest,
-) -> Json {
+) -> String {
   json.object([
     #(
       "subscription_type",
@@ -30,6 +30,7 @@ fn send_message_request_to_json(
     #("condition", condition.to_json(request.condition)),
     #("transport", transport.to_json(request.transport)),
   ])
+  |> json.to_string
 }
 
 pub type CreateEventSubSubscriptionResponse {
@@ -66,20 +67,15 @@ pub fn create_eventsub_subscription(
   client: Client,
   request: CreateEventSubSubscriptionRequest,
 ) -> Result(EventSubData(CreateEventSubSubscriptionResponse), TwitchError) {
-  let body =
-    request
-    |> send_message_request_to_json
-    |> json.to_string
-
   let api_req =
     api_request.new_helix_request()
-    |> api_request.set_body(body)
+    |> api_request.set_body(send_message_request_to_json(request))
     |> api_request.set_path("chat/messages")
 
   use response <- result.try(client.post(client, api_req))
 
-  response
-  |> api_response.get_eventsub_data(
+  api_response.get_eventsub_data(
+    response,
     create_eventsub_subscription_response_decoder(),
   )
 }

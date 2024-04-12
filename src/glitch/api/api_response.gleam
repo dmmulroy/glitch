@@ -44,9 +44,7 @@ pub fn get_data(
   api_response: TwitchApiResponse(String),
   data_decoder: Decoder(data),
 ) -> Result(data, TwitchError) {
-  let body =
-    api_response
-    |> get_body
+  let body = get_body(api_response)
 
   let error = json.decode(body, error_decoder())
 
@@ -66,9 +64,7 @@ pub fn get_list_data(
   api_response: TwitchApiResponse(String),
   data_decoder: Decoder(data),
 ) -> Result(List(data), TwitchError) {
-  let body =
-    api_response
-    |> get_body
+  let body = get_body(api_response)
 
   let error = json.decode(body, error_decoder())
 
@@ -107,9 +103,7 @@ pub fn get_eventsub_data(
   api_response: TwitchApiResponse(String),
   data_decoder: Decoder(data),
 ) -> Result(EventSubData(data), TwitchError) {
-  let body =
-    api_response
-    |> get_body
+  let body = get_body(api_response)
 
   let error = json.decode(body, error_decoder())
 

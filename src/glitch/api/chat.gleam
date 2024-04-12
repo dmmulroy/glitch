@@ -1,7 +1,7 @@
 import gleam/dynamic.{type Decoder}
 import gleam/option.{type Option}
 import gleam/result
-import gleam/json.{type DecodeError, type Json}
+import gleam/json.{type DecodeError}
 import glitch/api/client.{type Client}
 import glitch/api/api_request
 import glitch/api/api_response
@@ -33,7 +33,7 @@ pub type SendMessageRequest {
   )
 }
 
-fn send_message_request_to_json(request: SendMessageRequest) -> Json {
+fn send_message_request_to_json(request: SendMessageRequest) -> String {
   json.object([
     #("broadcaster_id", json.string(request.broadcaster_id)),
     #("sender_id", json.string(request.sender_id)),
@@ -43,24 +43,19 @@ fn send_message_request_to_json(request: SendMessageRequest) -> Json {
       json_ext.option(request.reply_parent_message_id, json.string),
     ),
   ])
+  |> json.to_string
 }
 
 pub fn send_message(
   client: Client,
   request: SendMessageRequest,
 ) -> Result(List(Message), TwitchError) {
-  let body =
-    request
-    |> send_message_request_to_json
-    |> json.to_string
-
   let api_req =
     api_request.new_helix_request()
-    |> api_request.set_body(body)
+    |> api_request.set_body(send_message_request_to_json(request))
     |> api_request.set_path("chat/messages")
 
   use response <- result.try(client.post(client, api_req))
 
-  response
-  |> api_response.get_list_data(message_decoder())
+  api_response.get_list_data(response, message_decoder())
 }

@@ -108,6 +108,5 @@ pub fn get_users(
 
   use response <- result.try(client.get(client, request))
 
-  response
-  |> api_response.get_list_data(decoder())
+  api_response.get_list_data(response, decoder())
 }
