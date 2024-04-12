@@ -27,20 +27,33 @@ pub fn new(auth_provider: AuthProvider) {
 
 pub fn start(_eventsub: EventSub) {
   let parent_subject = process.new_subject()
+  let mailbox = process.new_subject()
 
   let websocket_server =
     supervisor.worker(fn(_) {
       parent_subject
-      |> websocket_server.new
+      |> websocket_server.new(mailbox)
       |> function.tap(result.map(_, websocket_server.start))
     })
 
   let assert Ok(_) = supervisor.start(supervisor.add(_, websocket_server))
 
-  let assert Ok(mailbox): Result(Subject(WebSocketMessage), Nil) =
-    process.receive(parent_subject, 1000)
+  let assert Ok(_child_subject) = process.receive(parent_subject, 1000)
 
   process.new_selector()
-  |> process.selecting(mailbox, io.debug)
+  |> process.selecting(mailbox, handle)
   |> process.select_forever
+}
+
+fn handle(message: WebSocketMessage) {
+  case message {
+    websocket_message.WelcomeMessage(..) -> {
+      io.println("Welcome! It worked!!!")
+      io.debug(message)
+    }
+    _ -> {
+      io.println("this should only ever be unhandled message")
+      io.debug(message)
+    }
+  }
 }

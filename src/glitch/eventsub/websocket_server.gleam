@@ -1,11 +1,14 @@
 import gleam/function
 import gleam/io
 import gleam/option.{type Option, None, Some}
+import gleam/result
 import gleam/erlang/process.{type Subject}
 import gleam/otp/actor.{type StartError}
 import gleam/http/request
 import stratus
-import glitch/eventsub/websocket_message.{type WebSocketMessage}
+import glitch/eventsub/websocket_message.{
+  type WebSocketMessage, UnhandledMessage,
+}
 
 pub opaque type WebSockerServer {
   State(
@@ -29,20 +32,20 @@ pub type Message {
 const eventsub_uri = "https://eventsub.wss.twitch.tv/ws"
 
 pub fn new(
-  parent_mailbox: Subject(Subject(WebSocketMessage)),
+  parent_subject,
+  parent_mailbox: Subject(WebSocketMessage),
 ) -> Result(Subject(Message), StartError) {
   actor.start_spec(actor.Spec(
     init: fn() {
-      let websocket_server_subject: Subject(Message) = process.new_subject()
-      let mailbox: Subject(WebSocketMessage) = process.new_subject()
+      let websocket_server_subject = process.new_subject()
 
-      process.send(parent_mailbox, mailbox)
+      process.send(parent_subject, websocket_server_subject)
 
       let selector =
         process.new_selector()
         |> process.selecting(websocket_server_subject, function.identity)
 
-      let initial_state = State(mailbox, None, Stopped)
+      let initial_state = State(parent_mailbox, None, Stopped)
 
       actor.Ready(initial_state, selector)
     },
@@ -67,30 +70,28 @@ pub type Msg {
   TimeUpdated(String)
 }
 
+// TODO: Add KeepAlive decoder/Types
+// "{\"metadata\":{\"message_id\":\"f7af5b20-4b9c-467a-a70b-a242cbaaaecb\",\"message_type\":\"session_keepalive\",\"message_timestamp\":\"2024-04-12T13:47:50.014441929Z\"},\"payload\":{}}"
 fn handle_start(state: WebSockerServer) {
   let assert Ok(req) = request.to(eventsub_uri)
 
   let assert Ok(websocket_client_subject) =
     stratus.websocket(
       request: req,
-      init: fn() { #(Nil, None) },
-      loop: fn(msg, state, _conn) {
-        case msg {
-          stratus.Text(msg) -> {
-            io.println("Text")
-            io.debug(msg)
-            let foo = websocket_message.from_json(msg)
-            io.debug(foo)
+      init: fn() { #(state, None) },
+      loop: fn(message, state, _conn) {
+        case message {
+          stratus.Text(message) -> {
+            let decoded_message =
+              websocket_message.from_json(message)
+              |> result.unwrap(UnhandledMessage(message))
+
+            process.send(state.mailbox, decoded_message)
             actor.continue(state)
           }
-          stratus.User(msg) -> {
-            io.println("User")
-            io.debug(msg)
-            actor.continue(state)
-          }
-          stratus.Binary(msg) -> {
-            io.println("Binary")
-            io.debug(msg)
+          message -> {
+            io.println("Received unexpected message:")
+            io.debug(message)
             actor.continue(state)
           }
         }

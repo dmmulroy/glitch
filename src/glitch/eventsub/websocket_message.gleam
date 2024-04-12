@@ -8,6 +8,7 @@ import glitch/types/subscription.{type SubscriptionType}
 
 pub type WebSocketMessage {
   WelcomeMessage(metadata: Metadata, payload: WelcomeMessagePayload)
+  UnhandledMessage(raw_message: String)
 }
 
 pub fn from_json(json_string: String) -> Result(WebSocketMessage, DecodeError) {
