@@ -1,14 +1,14 @@
+import gleam/erlang/process.{type Subject}
 import gleam/function
+import gleam/http/request
 import gleam/io
 import gleam/option.{type Option, None, Some}
-import gleam/result
-import gleam/erlang/process.{type Subject}
 import gleam/otp/actor.{type StartError}
-import gleam/http/request
-import stratus
+import gleam/result
 import glitch/eventsub/websocket_message.{
   type WebSocketMessage, UnhandledMessage,
 }
+import stratus
 
 pub opaque type WebSockerServer {
   State(
@@ -70,8 +70,6 @@ pub type Msg {
   TimeUpdated(String)
 }
 
-// TODO: Add KeepAlive decoder/Types
-// "{\"metadata\":{\"message_id\":\"f7af5b20-4b9c-467a-a70b-a242cbaaaecb\",\"message_type\":\"session_keepalive\",\"message_timestamp\":\"2024-04-12T13:47:50.014441929Z\"},\"payload\":{}}"
 fn handle_start(state: WebSockerServer) {
   let assert Ok(req) = request.to(eventsub_uri)
 
@@ -97,7 +95,9 @@ fn handle_start(state: WebSockerServer) {
         }
       },
     )
-    |> stratus.on_close(fn(_state) { io.println("rawhat is a legend") })
+    |> stratus.on_close(fn(state) {
+      process.send(state.mailbox, websocket_message.Close)
+    })
     |> stratus.initialize
 
   actor.continue(

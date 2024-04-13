@@ -1,12 +1,13 @@
 import gleam/dynamic.{type Decoder}
-import gleam/result
+import gleam/io
 import gleam/json
-import glitch/api/client.{type Client}
+import gleam/result
 import glitch/api/api_request
 import glitch/api/api_response.{type EventSubData}
+import glitch/api/client.{type Client}
 import glitch/error.{type TwitchError}
-import glitch/types/subscription.{type SubscriptionStatus, type SubscriptionType}
 import glitch/types/condition.{type Condition}
+import glitch/types/subscription.{type SubscriptionStatus, type SubscriptionType}
 import glitch/types/transport.{type Transport}
 
 pub type CreateEventSubSubscriptionRequest {
@@ -22,10 +23,7 @@ fn send_message_request_to_json(
   request: CreateEventSubSubscriptionRequest,
 ) -> String {
   json.object([
-    #(
-      "subscription_type",
-      subscription.subscription_type_to_json(request.subscription_type),
-    ),
+    #("type", subscription.subscription_type_to_json(request.subscription_type)),
     #("version", json.string(request.version)),
     #("condition", condition.to_json(request.condition)),
     #("transport", transport.to_json(request.transport)),
@@ -51,11 +49,8 @@ fn create_eventsub_subscription_response_decoder() -> Decoder(
   dynamic.decode7(
     CreateEventSubSubscriptionResponse,
     dynamic.field("id", dynamic.string),
-    dynamic.field(
-      "subscription_status",
-      subscription.subscription_status_decoder(),
-    ),
-    dynamic.field("subscription_type", subscription.subscription_type_decoder()),
+    dynamic.field("status", subscription.subscription_status_decoder()),
+    dynamic.field("type", subscription.subscription_type_decoder()),
     dynamic.field("version", dynamic.string),
     dynamic.field("condition", condition.decoder()),
     dynamic.field("created_at", dynamic.string),
@@ -66,11 +61,13 @@ fn create_eventsub_subscription_response_decoder() -> Decoder(
 pub fn create_eventsub_subscription(
   client: Client,
   request: CreateEventSubSubscriptionRequest,
-) -> Result(EventSubData(CreateEventSubSubscriptionResponse), TwitchError) {
+) -> Result(EventSubData(List(CreateEventSubSubscriptionResponse)), TwitchError) {
   let api_req =
     api_request.new_helix_request()
     |> api_request.set_body(send_message_request_to_json(request))
-    |> api_request.set_path("chat/messages")
+    |> api_request.set_path("eventsub/subscriptions")
+
+  io.debug(api_req)
 
   use response <- result.try(client.post(client, api_req))
 

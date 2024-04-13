@@ -1,14 +1,16 @@
 import gleam/dynamic.{type Decoder, type Dynamic}
+import gleam/json.{type DecodeError}
 import gleam/option.{type Option}
 import gleam/result
 import gleam/uri.{type Uri}
-import gleam/json.{type DecodeError}
 import glitch/extended/dynamic_ext
 import glitch/types/subscription.{type SubscriptionType}
 
 pub type WebSocketMessage {
-  WelcomeMessage(metadata: Metadata, payload: WelcomeMessagePayload)
+  Close
+  SessionKeepaliveMessage(metadata: Metadata)
   UnhandledMessage(raw_message: String)
+  WelcomeMessage(metadata: Metadata, payload: WelcomeMessagePayload)
 }
 
 pub fn from_json(json_string: String) -> Result(WebSocketMessage, DecodeError) {
@@ -16,10 +18,21 @@ pub fn from_json(json_string: String) -> Result(WebSocketMessage, DecodeError) {
 }
 
 pub fn decoder() -> Decoder(WebSocketMessage) {
+  dynamic.any([welcome_message_decoder(), session_keepalive_message_decoder()])
+}
+
+fn welcome_message_decoder() -> Decoder(WebSocketMessage) {
   dynamic.decode2(
     WelcomeMessage,
     dynamic.field("metadata", metadate_decoder()),
     dynamic.field("payload", welcome_message_payload_decoder()),
+  )
+}
+
+fn session_keepalive_message_decoder() -> Decoder(WebSocketMessage) {
+  dynamic.decode1(
+    SessionKeepaliveMessage,
+    dynamic.field("metadata", metadate_decoder()),
   )
 }
 

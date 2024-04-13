@@ -40,4 +40,4 @@ logging = { version = "~> 1.0" }
 mist = { version = "~> 1.0" }
 prng = { version = "~> 3.0" }
 shellout = { version = "~> 1.6" }
-stratus = { version = "~> 0.5"}
+stratus = { version = "~> 0.5" }

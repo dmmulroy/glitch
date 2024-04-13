@@ -1,10 +1,10 @@
+import dot_env/env
+import gleam/erlang/process
 import gleam/function
 import gleam/io
 import gleam/option.{None}
-import gleam/erlang/process
-import dot_env/env
-import glitch/api/client
 import glitch/api/chat.{SendMessageRequest}
+import glitch/api/client
 import glitch/auth/auth_provider
 import glitch/auth/token_fetcher
 import glitch/eventsub/eventsub
@@ -14,7 +14,14 @@ import glitch/types/scope
 pub fn get_access_token() {
   let assert Ok(client_id) = env.get("CLIENT_ID")
   let assert Ok(client_secret) = env.get("CLIENT_SECRET")
-  let scopes = [scope.UserWriteChat, scope.UserBot, scope.ChannelBot]
+  let scopes = [
+    scope.ChannelBot,
+    scope.ChannelReadSubscriptions,
+    scope.ChatRead,
+    scope.UserBot,
+    scope.UserReadChat,
+    scope.UserWriteChat,
+  ]
 
   let mailbox = process.new_subject()
 
@@ -33,12 +40,19 @@ pub fn get_access_token() {
   Ok(Nil)
 }
 
-pub fn test_chat() {
+fn new_client() {
   let assert Ok(access_token_str) = env.get("ACCESS_TOKEN")
   let assert Ok(refresh_token_str) = env.get("REFRESH_TOKEN")
   let assert Ok(client_id) = env.get("CLIENT_ID")
   let assert Ok(client_secret) = env.get("CLIENT_SECRET")
-  let scopes = [scope.UserWriteChat, scope.UserBot, scope.ChannelBot]
+  let scopes = [
+    scope.ChannelBot,
+    scope.ChannelReadSubscriptions,
+    scope.ChatRead,
+    scope.UserBot,
+    scope.UserReadChat,
+    scope.UserWriteChat,
+  ]
 
   let access_token =
     access_token.new_user_access_token(
@@ -58,7 +72,11 @@ pub fn test_chat() {
       None,
     )
 
-  let client = client.new(auth_provider)
+  client.new(auth_provider)
+}
+
+pub fn test_chat() {
+  let client = new_client()
 
   let send_msg_request =
     SendMessageRequest("209286766", "209286766", "Hello, chat!", None)
@@ -67,37 +85,14 @@ pub fn test_chat() {
 }
 
 pub fn test_eventsub() {
-  let assert Ok(access_token_str) = env.get("ACCESS_TOKEN")
-  let assert Ok(refresh_token_str) = env.get("REFRESH_TOKEN")
-  let assert Ok(client_id) = env.get("CLIENT_ID")
-  let assert Ok(client_secret) = env.get("CLIENT_SECRET")
-  let scopes = [scope.UserWriteChat, scope.UserBot, scope.ChannelBot]
-
-  let access_token =
-    access_token.new_user_access_token(
-      0,
-      0,
-      refresh_token_str,
-      scopes,
-      access_token_str,
-      None,
-    )
-
-  let auth_provider =
-    auth_provider.new_refreshing_provider(
-      access_token,
-      client_id,
-      client_secret,
-      None,
-    )
-
-  let eventsub = eventsub.new(auth_provider)
+  let eventsub = eventsub.new(new_client())
   let _ = eventsub.start(eventsub)
 
   process.sleep_forever()
 }
 
 pub fn main() {
-  // test_chat()
+  // get_access_token()
+  // let _ = test_chat()
   test_eventsub()
 }

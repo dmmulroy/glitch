@@ -1,8 +1,8 @@
 import gleam/dynamic.{type Decoder}
-import gleam/json
-import gleam/result
 import gleam/http.{type Header}
 import gleam/http/response.{type Response, Response}
+import gleam/json
+import gleam/result
 import glitch/error.{type TwitchError, ResponseDecodeError, ResponseError}
 
 pub opaque type TwitchApiResponse(data) {
@@ -89,10 +89,10 @@ pub type EventSubData(data) {
 
 fn eventsub_data_decoder(
   data_decoder: Decoder(data),
-) -> Decoder(EventSubData(data)) {
+) -> Decoder(EventSubData(List(data))) {
   dynamic.decode4(
     EventSubData,
-    dynamic.field("data", data_decoder),
+    dynamic.field("data", dynamic.list(data_decoder)),
     dynamic.field("total", dynamic.int),
     dynamic.field("total_cost", dynamic.int),
     dynamic.field("max_total_cost", dynamic.int),
@@ -102,7 +102,7 @@ fn eventsub_data_decoder(
 pub fn get_eventsub_data(
   api_response: TwitchApiResponse(String),
   data_decoder: Decoder(data),
-) -> Result(EventSubData(data), TwitchError) {
+) -> Result(EventSubData(List(data)), TwitchError) {
   let body = get_body(api_response)
 
   let error = json.decode(body, error_decoder())

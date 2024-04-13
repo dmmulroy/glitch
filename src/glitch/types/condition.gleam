@@ -1,6 +1,6 @@
 import gleam/dynamic.{type Decoder}
-import gleam/option.{type Option}
 import gleam/json.{type DecodeError as JsonDecodeError, type Json}
+import gleam/option.{type Option}
 import glitch/extended/json_ext
 
 pub type Condition {
@@ -19,14 +19,14 @@ pub type Condition {
 pub fn decoder() -> Decoder(Condition) {
   dynamic.decode8(
     Condition,
-    dynamic.field("broadcaster_user_id", dynamic.optional(dynamic.string)),
-    dynamic.field("from_broadcaster_id", dynamic.optional(dynamic.string)),
-    dynamic.field("moderator_user_id", dynamic.optional(dynamic.string)),
-    dynamic.field("to_broadcaster_id_user_id", dynamic.optional(dynamic.string)),
-    dynamic.field("reward_id", dynamic.optional(dynamic.string)),
-    dynamic.field("client_id", dynamic.optional(dynamic.string)),
-    dynamic.field("extension_client_id", dynamic.optional(dynamic.string)),
-    dynamic.field("user_id", dynamic.optional(dynamic.string)),
+    dynamic.optional_field("broadcaster_user_id", dynamic.string),
+    dynamic.optional_field("from_broadcaster_id", dynamic.string),
+    dynamic.optional_field("moderator_user_id", dynamic.string),
+    dynamic.optional_field("to_broadcaster_id_user_id", dynamic.string),
+    dynamic.optional_field("reward_id", dynamic.string),
+    dynamic.optional_field("client_id", dynamic.string),
+    dynamic.optional_field("extension_client_id", dynamic.string),
+    dynamic.optional_field("user_id", dynamic.string),
   )
 }
 
