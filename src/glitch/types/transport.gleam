@@ -1,7 +1,7 @@
 import gleam/dynamic.{type Decoder}
+import gleam/json.{type DecodeError as JsonDecodeError, type Json}
 import gleam/option.{type Option}
 import gleam/result
-import gleam/json.{type DecodeError as JsonDecodeError, type Json}
 import glitch/extended/json_ext
 
 pub type Transport {
@@ -25,12 +25,12 @@ pub fn decoder() -> Decoder(Transport) {
   dynamic.decode7(
     Transport,
     dynamic.field("method", method_decoder()),
-    dynamic.field("callback", dynamic.optional(dynamic.string)),
-    dynamic.field("secret", dynamic.optional(dynamic.string)),
-    dynamic.field("session_id", dynamic.optional(dynamic.string)),
-    dynamic.field("connected_at", dynamic.optional(dynamic.string)),
-    dynamic.field("disconnected_at", dynamic.optional(dynamic.string)),
-    dynamic.field("conduit_id", dynamic.optional(dynamic.string)),
+    dynamic.optional_field("callback", dynamic.string),
+    dynamic.optional_field("secret", dynamic.string),
+    dynamic.optional_field("session_id", dynamic.string),
+    dynamic.optional_field("connected_at", dynamic.string),
+    dynamic.optional_field("disconnected_at", dynamic.string),
+    dynamic.optional_field("conduit_id", dynamic.string),
   )
 }
 

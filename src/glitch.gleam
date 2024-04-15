@@ -16,6 +16,8 @@ pub fn get_access_token() {
   let assert Ok(client_secret) = env.get("CLIENT_SECRET")
   let scopes = [
     scope.ChannelBot,
+    scope.ChannelManageRedemptions,
+    scope.ChannelReadRedemptions,
     scope.ChannelReadSubscriptions,
     scope.ChatRead,
     scope.UserBot,
@@ -47,6 +49,8 @@ fn new_client() {
   let assert Ok(client_secret) = env.get("CLIENT_SECRET")
   let scopes = [
     scope.ChannelBot,
+    scope.ChannelManageRedemptions,
+    scope.ChannelReadRedemptions,
     scope.ChannelReadSubscriptions,
     scope.ChatRead,
     scope.UserBot,
@@ -93,6 +97,6 @@ pub fn test_eventsub() {
 
 pub fn main() {
   // get_access_token()
-  // let _ = test_chat()
+  // // let _ = test_chat()
   test_eventsub()
 }

@@ -60,6 +60,10 @@ fn handle(state: EventSub, message: WebSocketMessage) {
       io.println("Closed")
       io.debug(message)
     }
+    websocket_message.NotificationMessage(..) -> {
+      io.println("NotificationMessage")
+      io.debug(message)
+    }
     websocket_message.SessionKeepaliveMessage(..) -> {
       io.println("SessionKeepaliveMessage")
       io.debug(message)
@@ -69,11 +73,40 @@ fn handle(state: EventSub, message: WebSocketMessage) {
       io.debug(message)
     }
     websocket_message.WelcomeMessage(_, payload) -> {
+      // let resp =
+      //   eventsub.create_eventsub_subscription(
+      //     state.client,
+      //     CreateEventSubSubscriptionRequest(
+      //       ChannelChatMessage,
+      //       "1",
+      //       Condition(
+      //         Some("209286766"),
+      //         None,
+      //         None,
+      //         None,
+      //         None,
+      //         Some(client.client_id(state.client)),
+      //         None,
+      //         Some("209286766"),
+      //       ),
+      //       Transport(
+      //         WebSocket,
+      //         None,
+      //         None,
+      //         Some(payload.session.id),
+      //         None,
+      //         None,
+      //         None,
+      //       ),
+      //     ),
+      //   )
+      // let _ = io.debug(resp)
+
       let resp =
         eventsub.create_eventsub_subscription(
           state.client,
           CreateEventSubSubscriptionRequest(
-            ChannelChatMessage,
+            subscription.ChannelPointsCustomRewardRedemptionAdd,
             "1",
             Condition(
               Some("209286766"),
@@ -81,9 +114,9 @@ fn handle(state: EventSub, message: WebSocketMessage) {
               None,
               None,
               None,
-              Some(client.client_id(state.client)),
               None,
-              Some("209286766"),
+              None,
+              None,
             ),
             Transport(
               WebSocket,

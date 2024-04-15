@@ -3,6 +3,33 @@ import gleam/json.{
   type DecodeError as JsonDecodeError, type Json, UnexpectedFormat,
 }
 import gleam/result
+import glitch/types/condition.{type Condition}
+import glitch/types/transport.{type Transport}
+
+pub type Subscription {
+  Subscription(
+    id: String,
+    subscription_status: SubscriptionStatus,
+    subscription_type: SubscriptionType,
+    version: String,
+    cost: Int,
+    condition: Condition,
+    transport: Transport,
+  )
+}
+
+pub fn decoder() -> Decoder(Subscription) {
+  dynamic.decode7(
+    Subscription,
+    dynamic.field("id", dynamic.string),
+    dynamic.field("status", subscription_status_decoder()),
+    dynamic.field("type", subscription_type_decoder()),
+    dynamic.field("version", dynamic.string),
+    dynamic.field("cost", dynamic.int),
+    dynamic.field("condition", condition.decoder()),
+    dynamic.field("transport", transport.decoder()),
+  )
+}
 
 pub type SubscriptionType {
   AutomodMessageHold
