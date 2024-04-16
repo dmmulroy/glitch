@@ -9,8 +9,8 @@ import glitch/types/condition.{type Condition}
 import glitch/types/subscription.{type SubscriptionStatus, type SubscriptionType}
 import glitch/types/transport.{type Transport}
 
-pub type CreateEventSubSubscriptionRequest {
-  CreateEventSubSubscriptionRequest(
+pub type CreateEventSubscriptionRequest {
+  CreateEventSubscriptionRequest(
     subscription_type: SubscriptionType,
     version: String,
     condition: Condition,
@@ -19,7 +19,7 @@ pub type CreateEventSubSubscriptionRequest {
 }
 
 fn send_message_request_to_json(
-  request: CreateEventSubSubscriptionRequest,
+  request: CreateEventSubscriptionRequest,
 ) -> String {
   json.object([
     #("type", subscription.subscription_type_to_json(request.subscription_type)),
@@ -59,7 +59,7 @@ fn create_eventsub_subscription_response_decoder() -> Decoder(
 
 pub fn create_eventsub_subscription(
   client: Client,
-  request: CreateEventSubSubscriptionRequest,
+  request: CreateEventSubscriptionRequest,
 ) -> Result(EventSubData(List(CreateEventSubSubscriptionResponse)), TwitchError) {
   let api_req =
     api_request.new_helix_request()

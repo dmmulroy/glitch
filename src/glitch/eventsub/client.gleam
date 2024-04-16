@@ -4,17 +4,17 @@ import gleam/io
 import gleam/option.{type Option, None, Some}
 import gleam/otp/supervisor.{type Message as SupervisorMessage}
 import gleam/result
-import glitch/api/client.{type Client}
-import glitch/api/eventsub.{CreateEventSubSubscriptionRequest}
+import glitch/api/client.{type Client as ApiClient}
+import glitch/api/eventsub.{CreateEventSubscriptionRequest}
 import glitch/eventsub/websocket_message.{type WebSocketMessage}
 import glitch/eventsub/websocket_server
 import glitch/types/condition.{Condition}
 import glitch/types/subscription
 import glitch/types/transport.{Transport, WebSocket}
 
-pub opaque type EventSub {
+pub opaque type Client {
   State(
-    client: Client,
+    api_client: ApiClient,
     status: Status,
     mailbox: Option(Subject(SupervisorMessage)),
   )
@@ -25,11 +25,11 @@ pub type Status {
   Stopped
 }
 
-pub fn new(client: Client) {
-  State(client, Stopped, None)
+pub fn new(api_client: ApiClient) {
+  State(api_client, Stopped, None)
 }
 
-pub fn start(eventsub: EventSub) {
+pub fn start(eventsub: Client) {
   let parent_subject = process.new_subject()
   let mailbox = process.new_subject()
 
@@ -54,7 +54,7 @@ fn loop(selector, mailbox, handle) {
   |> fn(_) { loop(selector, mailbox, handle) }
 }
 
-fn handle(state: EventSub, message: WebSocketMessage) {
+fn handle(state: Client, message: WebSocketMessage) {
   case message {
     websocket_message.Close -> {
       io.debug(message)
@@ -71,8 +71,8 @@ fn handle(state: EventSub, message: WebSocketMessage) {
     websocket_message.WelcomeMessage(_, payload) -> {
       let assert Ok(_) =
         eventsub.create_eventsub_subscription(
-          state.client,
-          CreateEventSubSubscriptionRequest(
+          state.api_client,
+          CreateEventSubscriptionRequest(
             subscription.ChannelChatMessage,
             "1",
             Condition(
@@ -81,7 +81,7 @@ fn handle(state: EventSub, message: WebSocketMessage) {
               None,
               None,
               None,
-              Some(client.client_id(state.client)),
+              Some(client.client_id(state.api_client)),
               None,
               Some("209286766"),
             ),
@@ -99,8 +99,8 @@ fn handle(state: EventSub, message: WebSocketMessage) {
 
       let assert Ok(_) =
         eventsub.create_eventsub_subscription(
-          state.client,
-          CreateEventSubSubscriptionRequest(
+          state.api_client,
+          CreateEventSubscriptionRequest(
             subscription.ChannelPointsCustomRewardRedemptionAdd,
             "1",
             Condition(
