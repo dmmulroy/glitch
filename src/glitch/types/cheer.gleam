@@ -1,4 +1,4 @@
-import gleam/dynamic.{type Decoder, type Dynamic}
+import gleam/dynamic.{type Decoder}
 
 pub type Cheer {
   Cheer(bits: Int)

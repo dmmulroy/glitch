@@ -15,8 +15,9 @@ import glitch/types/transport.{Transport, WebSocket}
 pub opaque type Client {
   State(
     api_client: ApiClient,
+    mailbox: Subject(WebSocketMessage),
     status: Status,
-    mailbox: Option(Subject(SupervisorMessage)),
+    websocket_server_mailbox: Option(Subject(SupervisorMessage)),
   )
 }
 
@@ -25,18 +26,18 @@ pub type Status {
   Stopped
 }
 
-pub fn new(api_client: ApiClient) {
-  State(api_client, Stopped, None)
+pub fn new(api_client: ApiClient, mailbox: Subject(WebSocketMessage)) -> Client {
+  State(api_client, mailbox, Stopped, None)
 }
 
 pub fn start(eventsub: Client) {
   let parent_subject = process.new_subject()
-  let mailbox = process.new_subject()
+  let websocket_server_mailbox = process.new_subject()
 
   let websocket_server =
     supervisor.worker(fn(_) {
       parent_subject
-      |> websocket_server.new(mailbox)
+      |> websocket_server.new(websocket_server_mailbox)
       |> function.tap(result.map(_, websocket_server.start))
     })
 
@@ -44,14 +45,14 @@ pub fn start(eventsub: Client) {
 
   let assert Ok(_child_subject) = process.receive(parent_subject, 1000)
 
-  loop(process.new_selector(), mailbox, handle(eventsub, _))
+  loop(process.new_selector(), websocket_server_mailbox, handle(eventsub, _))
 }
 
-fn loop(selector, mailbox, handle) {
+fn loop(selector, websocket_server_mailbox, handle) {
   selector
-  |> process.selecting(mailbox, handle)
+  |> process.selecting(websocket_server_mailbox, handle)
   |> process.select_forever
-  |> fn(_) { loop(selector, mailbox, handle) }
+  |> fn(_) { loop(selector, websocket_server_mailbox, handle) }
 }
 
 fn handle(state: Client, message: WebSocketMessage) {

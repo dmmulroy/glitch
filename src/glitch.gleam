@@ -4,10 +4,10 @@ import gleam/function
 import gleam/io
 import gleam/option.{None}
 import glitch/api/chat.{SendMessageRequest}
-import glitch/api/client
+import glitch/api/client as api_client
 import glitch/auth/auth_provider
 import glitch/auth/token_fetcher
-import glitch/eventsub/eventsub
+import glitch/eventsub/client as eventsub_client
 import glitch/types/access_token
 import glitch/types/scope
 
@@ -42,7 +42,7 @@ pub fn get_access_token() {
   Ok(Nil)
 }
 
-fn new_client() {
+fn new_api_client() {
   let assert Ok(access_token_str) = env.get("ACCESS_TOKEN")
   let assert Ok(refresh_token_str) = env.get("REFRESH_TOKEN")
   let assert Ok(client_id) = env.get("CLIENT_ID")
@@ -76,11 +76,11 @@ fn new_client() {
       None,
     )
 
-  client.new(auth_provider)
+  api_client.new(auth_provider)
 }
 
 pub fn test_chat() {
-  let client = new_client()
+  let client = new_api_client()
 
   let send_msg_request =
     SendMessageRequest("209286766", "209286766", "Hello, chat!", None)
@@ -89,8 +89,9 @@ pub fn test_chat() {
 }
 
 pub fn test_eventsub() {
-  let eventsub = eventsub.new(new_client())
-  let _ = eventsub.start(eventsub)
+  let mailbox = process.new_subject()
+  let eventsub = eventsub_client.new(new_api_client(), mailbox)
+  let _ = eventsub_client.start(eventsub)
 
   process.sleep_forever()
 }
