@@ -1,5 +1,4 @@
 import gleam/dynamic.{type Decoder}
-import gleam/io
 import gleam/json
 import gleam/result
 import glitch/api/api_request
@@ -66,8 +65,6 @@ pub fn create_eventsub_subscription(
     api_request.new_helix_request()
     |> api_request.set_body(send_message_request_to_json(request))
     |> api_request.set_path("eventsub/subscriptions")
-
-  io.debug(api_req)
 
   use response <- result.try(client.post(client, api_req))
 

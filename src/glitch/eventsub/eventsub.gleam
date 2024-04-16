@@ -9,7 +9,7 @@ import glitch/api/eventsub.{CreateEventSubSubscriptionRequest}
 import glitch/eventsub/websocket_message.{type WebSocketMessage}
 import glitch/eventsub/websocket_server
 import glitch/types/condition.{Condition}
-import glitch/types/subscription.{ChannelChatMessage}
+import glitch/types/subscription
 import glitch/types/transport.{Transport, WebSocket}
 
 pub opaque type EventSub {
@@ -57,52 +57,47 @@ fn loop(selector, mailbox, handle) {
 fn handle(state: EventSub, message: WebSocketMessage) {
   case message {
     websocket_message.Close -> {
-      io.println("Closed")
       io.debug(message)
     }
     websocket_message.NotificationMessage(..) -> {
-      io.println("NotificationMessage")
       io.debug(message)
     }
     websocket_message.SessionKeepaliveMessage(..) -> {
-      io.println("SessionKeepaliveMessage")
       io.debug(message)
     }
     websocket_message.UnhandledMessage(_) -> {
-      io.println("UnhandledMessage")
       io.debug(message)
     }
     websocket_message.WelcomeMessage(_, payload) -> {
-      // let resp =
-      //   eventsub.create_eventsub_subscription(
-      //     state.client,
-      //     CreateEventSubSubscriptionRequest(
-      //       ChannelChatMessage,
-      //       "1",
-      //       Condition(
-      //         Some("209286766"),
-      //         None,
-      //         None,
-      //         None,
-      //         None,
-      //         Some(client.client_id(state.client)),
-      //         None,
-      //         Some("209286766"),
-      //       ),
-      //       Transport(
-      //         WebSocket,
-      //         None,
-      //         None,
-      //         Some(payload.session.id),
-      //         None,
-      //         None,
-      //         None,
-      //       ),
-      //     ),
-      //   )
-      // let _ = io.debug(resp)
+      let assert Ok(_) =
+        eventsub.create_eventsub_subscription(
+          state.client,
+          CreateEventSubSubscriptionRequest(
+            subscription.ChannelChatMessage,
+            "1",
+            Condition(
+              Some("209286766"),
+              None,
+              None,
+              None,
+              None,
+              Some(client.client_id(state.client)),
+              None,
+              Some("209286766"),
+            ),
+            Transport(
+              WebSocket,
+              None,
+              None,
+              Some(payload.session.id),
+              None,
+              None,
+              None,
+            ),
+          ),
+        )
 
-      let resp =
+      let assert Ok(_) =
         eventsub.create_eventsub_subscription(
           state.client,
           CreateEventSubSubscriptionRequest(
@@ -129,7 +124,7 @@ fn handle(state: EventSub, message: WebSocketMessage) {
             ),
           ),
         )
-      let _ = io.debug(resp)
+
       message
     }
   }

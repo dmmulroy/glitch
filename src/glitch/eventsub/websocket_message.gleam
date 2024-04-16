@@ -37,6 +37,7 @@ fn welcome_message_decoder() -> Decoder(WebSocketMessage) {
   )
 }
 
+// TODO: Figure out how to handle "strict", i.e. not allowing additional filds
 fn session_keepalive_message_decoder() -> Decoder(WebSocketMessage) {
   dynamic.decode1(
     SessionKeepaliveMessage,
@@ -214,45 +215,170 @@ fn notification_message_payload_decoder() -> Decoder(NotificationMessagePayload)
 
 pub type Event {
   ChannelChatMessageEvent(
+    badges: List(Badge),
     broadcaster_user_id: String,
     broadcaster_user_login: String,
     broadcaster_user_name: String,
     chatter_user_id: String,
     chatter_user_login: String,
     chatter_user_name: String,
-    message_id: String,
-    message: ChannelChatMessage,
     color: String,
-    badges: List(Badge),
+    message: ChannelChatMessage,
+    message_id: String,
     message_type: ChannelChatMessageType,
     cheer: Option(Cheer),
-    reply: Option(ChannelChatMessageReply),
     channel_points_custom_reward_id: Option(String),
+    reply: Option(ChannelChatMessageReply),
   )
-  RewardEvent(id: String, title: String, cost: Int, prompt: String)
+  ChannelPointsCustomRewardRedemptionAddEvent(
+    id: String,
+    broadcaster_user_id: String,
+    broadcaster_user_login: String,
+    broadcaster_user_name: String,
+    user_id: String,
+    user_login: String,
+    user_name: String,
+    user_input: String,
+    status: RewardStatus,
+    reward: Reward,
+    redeemed_at: String,
+  )
+}
+
+pub type Reward {
+  Reward(id: String, title: String, cost: Int, prompt: String)
+}
+
+pub fn reward_decoder() -> Decoder(Reward) {
+  dynamic.decode4(
+    Reward,
+    dynamic.field("id", dynamic.string),
+    dynamic.field("title", dynamic.string),
+    dynamic.field("cost", dynamic.int),
+    dynamic.field("prompt", dynamic.string),
+  )
+}
+
+pub type RewardStatus {
+  Canceled
+  Fulfilled
+  Unfulfilled
+  Unknown
+}
+
+pub fn rewards_status_to_string(reward_status: RewardStatus) -> String {
+  case reward_status {
+    Canceled -> "canceled"
+    Fulfilled -> "fulfilled"
+    Unfulfilled -> "unfulfilled"
+    Unknown -> "unknown"
+  }
+}
+
+pub fn reward_status_from_string(string: String) -> Result(RewardStatus, Nil) {
+  case string {
+    "canceled" -> Ok(Canceled)
+    "fulfilled" -> Ok(Fulfilled)
+    "unfulfilled" -> Ok(Unfulfilled)
+    "unknown" -> Ok(Unknown)
+    _ -> Error(Nil)
+  }
+}
+
+pub fn reward_status_decoder() -> Decoder(RewardStatus) {
+  fn(data: Dynamic) {
+    use string <- result.try(dynamic.string(data))
+
+    string
+    |> reward_status_from_string
+    |> result.replace_error([
+      dynamic.DecodeError(
+        expected: "RewardsStatus",
+        found: "String(" <> string <> ")",
+        path: [],
+      ),
+    ])
+  }
+}
+
+pub type Image {
+  Image(url_1x: Uri, url_2x: Uri, url_3x: Uri)
+}
+
+pub fn image_decoder() -> Decoder(Image) {
+  dynamic.decode3(
+    Image,
+    dynamic.field("url_1x", dynamic_ext.uri),
+    dynamic.field("url_2x", dynamic_ext.uri),
+    dynamic.field("url_3x", dynamic_ext.uri),
+  )
+}
+
+pub type MaxPerStream {
+  MaxPerStream(is_enabled: Bool, value: Int)
+}
+
+pub fn max_per_stream_decoder() -> Decoder(MaxPerStream) {
+  dynamic.decode2(
+    MaxPerStream,
+    dynamic.field("is_enabled", dynamic.bool),
+    dynamic.field("value", dynamic.int),
+  )
+}
+
+pub type Cooldown {
+  Cooldown(is_enabled: Bool, seconds: Int)
+}
+
+pub fn cooldown_decoder() -> Decoder(Cooldown) {
+  dynamic.decode2(
+    Cooldown,
+    dynamic.field("is_enabled", dynamic.bool),
+    dynamic.field("second", dynamic.int),
+  )
 }
 
 fn event_decoder() -> Decoder(Event) {
-  dynamic.any([channel_chat_messsage_event_decoder(), reward_event_decoder()])
+  dynamic.any([
+    channel_chat_messsage_event_decoder(),
+    channel_points_custom_reward_redemption_add_event_decoder(),
+  ])
 }
 
 fn channel_chat_messsage_event_decoder() -> Decoder(Event) {
   dynamic_ext.decode14(
     ChannelChatMessageEvent,
+    dynamic.field("badges", dynamic.list(of: badge_decoder())),
     dynamic.field("broadcaster_user_id", dynamic.string),
     dynamic.field("broadcaster_user_login", dynamic.string),
     dynamic.field("broadcaster_user_name", dynamic.string),
     dynamic.field("chatter_user_id", dynamic.string),
     dynamic.field("chatter_user_login", dynamic.string),
     dynamic.field("chatter_user_name", dynamic.string),
-    dynamic.field("message_id", dynamic.string),
-    dynamic.field("message", channel_chat_message_decoder()),
     dynamic.field("color", dynamic.string),
-    dynamic.field("badges", dynamic.list(of: badge_decoder())),
+    dynamic.field("message", channel_chat_message_decoder()),
+    dynamic.field("message_id", dynamic.string),
     dynamic.field("message_type", channel_chat_messsage_type_decoder()),
     dynamic.optional_field("cheer", cheer_decoder()),
-    dynamic.optional_field("reply", channel_chat_message_reply_decoder()),
     dynamic.optional_field("channel_points_custom_reward_id", dynamic.string),
+    dynamic.optional_field("reply", channel_chat_message_reply_decoder()),
+  )
+}
+
+fn channel_points_custom_reward_redemption_add_event_decoder() -> Decoder(Event) {
+  dynamic_ext.decode11(
+    ChannelPointsCustomRewardRedemptionAddEvent,
+    dynamic.field("id", dynamic.string),
+    dynamic.field("broadcaster_user_id", dynamic.string),
+    dynamic.field("broadcaster_user_login", dynamic.string),
+    dynamic.field("broadcaster_user_name", dynamic.string),
+    dynamic.field("user_id", dynamic.string),
+    dynamic.field("user_login", dynamic.string),
+    dynamic.field("user_name", dynamic.string),
+    dynamic.field("user_input", dynamic.string),
+    dynamic.field("status", reward_status_decoder()),
+    dynamic.field("reward", reward_decoder()),
+    dynamic.field("redeemed_at", dynamic.string),
   )
 }
 
@@ -498,15 +624,5 @@ pub fn mention_decoder() -> Decoder(Mention) {
     dynamic.field("user_id", dynamic.string),
     dynamic.field("user_name", dynamic.string),
     dynamic.field("user_login", dynamic.string),
-  )
-}
-
-fn reward_event_decoder() -> Decoder(Event) {
-  dynamic.decode4(
-    RewardEvent,
-    dynamic.field("id", dynamic.string),
-    dynamic.field("title", dynamic.string),
-    dynamic.field("cost", dynamic.int),
-    dynamic.field("prompt", dynamic.string),
   )
 }

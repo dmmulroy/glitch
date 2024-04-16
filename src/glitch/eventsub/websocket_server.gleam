@@ -80,18 +80,15 @@ fn handle_start(state: WebSockerServer) {
       loop: fn(message, state, _conn) {
         case message {
           stratus.Text(message) -> {
-            io.debug(message)
             let decoded_message =
               websocket_message.from_json(message)
-              |> function.tap(io.debug)
               |> result.unwrap(UnhandledMessage(message))
 
             process.send(state.mailbox, decoded_message)
             actor.continue(state)
           }
-          message -> {
+          _ -> {
             io.println("Received unexpected message:")
-            io.debug(message)
             actor.continue(state)
           }
         }
