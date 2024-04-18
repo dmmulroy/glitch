@@ -15,7 +15,7 @@ pub type WebSocketServer =
 
 pub opaque type WebSockerServerState {
   State(
-    self: Subject(Message),
+    websocket_message_mailbox: Subject(WebSocketMessage),
     stratus: Option(Subject(stratus.InternalMessage(Nil))),
     status: Status,
   )
@@ -29,13 +29,15 @@ pub type Status {
 pub type Message {
   Start
   Shutdown
-  WebSocketMessage(WebSocketMessage)
 }
 
 // Todo: Look into why we need https/wss
 const eventsub_uri = "https://eventsub.wss.twitch.tv/ws"
 
-pub fn new(parent_subject) -> Result(WebSocketServer, StartError) {
+pub fn new(
+  parent_subject,
+  websocket_message_mailbox,
+) -> Result(WebSocketServer, StartError) {
   actor.start_spec(actor.Spec(
     init: fn() {
       let self = process.new_subject()
@@ -45,7 +47,7 @@ pub fn new(parent_subject) -> Result(WebSocketServer, StartError) {
       let selector =
         process.selecting(process.new_selector(), self, function.identity)
 
-      let initial_state = State(self, None, Stopped)
+      let initial_state = State(websocket_message_mailbox, None, Stopped)
 
       actor.Ready(initial_state, selector)
     },
@@ -62,7 +64,6 @@ fn handle_message(message: Message, state: WebSockerServerState) {
   case message {
     Shutdown -> actor.Stop(process.Normal)
     Start -> handle_start(state)
-    WebSocketMessage(_) -> actor.continue(state)
   }
 }
 
@@ -76,12 +77,12 @@ fn handle_start(state: WebSockerServerState) {
       loop: fn(message, state, _conn) {
         case message {
           stratus.Text(message) -> {
+            io.debug(message)
             let decoded_message =
               websocket_message.from_json(message)
-              |> result.map(WebSocketMessage)
-              |> result.unwrap(WebSocketMessage(UnhandledMessage(message)))
+              |> result.unwrap(UnhandledMessage(message))
 
-            actor.send(state.self, decoded_message)
+            process.send(state.websocket_message_mailbox, decoded_message)
 
             actor.continue(state)
           }
@@ -93,7 +94,7 @@ fn handle_start(state: WebSockerServerState) {
       },
     )
     |> stratus.on_close(fn(state) {
-      process.send(state.self, WebSocketMessage(websocket_message.Close))
+      process.send(state.websocket_message_mailbox, websocket_message.Close)
     })
     |> stratus.initialize
 

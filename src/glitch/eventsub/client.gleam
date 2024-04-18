@@ -2,11 +2,10 @@ import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Subject}
 import gleam/function
 import gleam/io
-import gleam/option.{type Option, Some}
 import gleam/otp/actor
 import gleam/otp/supervisor
 import gleam/result
-import glitch/api/client.{type Client as ApiClient}
+import glitch/api/client.{type Client as ApiClient} as api_client
 import glitch/api/eventsub.{
   type CreateEventSubscriptionRequest, CreateEventSubscriptionRequest,
 }
@@ -25,7 +24,7 @@ pub opaque type ClientState {
     mailbox: Subject(WebSocketMessage),
     subscriptions: Dict(SubscriptionType, Subject(Event)),
     status: Status,
-    websocket_server_mailbox: Option(WebSocketServer),
+    websocket_server: WebSocketServer,
   )
 }
 
@@ -44,7 +43,7 @@ pub type Status {
 
 pub fn new(
   api_client: ApiClient,
-  mailbox: Subject(WebSocketMessage),
+  websocket_message_mailbox: Subject(WebSocketMessage),
 ) -> Result(Client, TwitchError) {
   actor.start_spec(actor.Spec(
     init: fn() {
@@ -55,7 +54,7 @@ pub fn new(
       let websocket_server =
         supervisor.worker(fn(_) {
           child_subject_mailbox
-          |> websocket_server.new
+          |> websocket_server.new(websocket_message_mailbox)
           |> function.tap(result.map(_, websocket_server.start))
         })
 
@@ -65,12 +64,28 @@ pub fn new(
         process.receive(child_subject_mailbox, 1000)
 
       let initial_state =
-        State(api_client, mailbox, dict.new(), Stopped, Some(child_subject))
+        State(
+          api_client,
+          websocket_message_mailbox,
+          dict.new(),
+          Stopped,
+          child_subject,
+        )
 
       let selector =
         process.selecting(process.new_selector(), self, function.identity)
 
-      actor.Ready(initial_state, selector)
+      let mailbox_selector =
+        process.selecting(
+          process.new_selector(),
+          websocket_message_mailbox,
+          WebSocketMessage,
+        )
+
+      actor.Ready(
+        initial_state,
+        process.merge_selector(selector, mailbox_selector),
+      )
     },
     init_timeout: 1000,
     loop: handle_message,
@@ -104,6 +119,11 @@ pub fn mailbox(client: Client) -> Subject(WebSocketMessage) {
   state.mailbox
 }
 
+pub fn api_client(client: Client) -> api_client.Client {
+  let state = actor.call(client, GetState, 1000)
+  state.api_client
+}
+
 fn handle_message(message: Message, state: ClientState) {
   case message {
     GetState(state_mailbox) -> {
@@ -117,6 +137,7 @@ fn handle_message(message: Message, state: ClientState) {
     }
     WebSocketMessage(message) -> handle_websocket_message(state, message)
     Start -> {
+      process.send(state.websocket_server, websocket_server.Start)
       actor.continue(State(..state, status: Running))
     }
     Stop -> panic as "todo"
@@ -124,6 +145,7 @@ fn handle_message(message: Message, state: ClientState) {
 }
 
 fn handle_websocket_message(state: ClientState, message: WebSocketMessage) {
+  io.println("handle_websocket_message")
   io.debug(message)
   case message {
     websocket_message.Close -> {
@@ -140,62 +162,6 @@ fn handle_websocket_message(state: ClientState, message: WebSocketMessage) {
       Nil
     }
   }
-  process.send(state.mailbox, message)
+  // process.send(state.mailbox, message)
   actor.continue(state)
 }
-// let assert Ok(_) =
-//   eventsub.create_eventsub_subscription(
-//     state.api_client,
-//     CreateEventSubscriptionRequest(
-//       subscription.ChannelChatMessage,
-//       "1",
-//       Condition(
-//         Some("209286766"),
-//         None,
-//         None,
-//         None,
-//         None,
-//         Some(client.client_id(state.api_client)),
-//         None,
-//         Some("209286766"),
-//       ),
-//       Transport(
-//         WebSocket,
-//         None,
-//         None,
-//         Some(payload.session.id),
-//         None,
-//         None,
-//         None,
-//       ),
-//     ),
-//   )
-//
-// let assert Ok(_) =
-//   eventsub.create_eventsub_subscription(
-//     state.api_client,
-//     CreateEventSubscriptionRequest(
-//       subscription.ChannelPointsCustomRewardRedemptionAdd,
-//       "1",
-//       Condition(
-//         Some("209286766"),
-//         None,
-//         None,
-//         None,
-//         None,
-//         None,
-//         None,
-//         None,
-//       ),
-//       Transport(
-//         WebSocket,
-//         None,
-//         None,
-//         Some(payload.session.id),
-//         None,
-//         None,
-//         None,
-//       ),
-//     ),
-//   )
-//
