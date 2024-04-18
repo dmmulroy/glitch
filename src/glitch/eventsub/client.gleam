@@ -82,6 +82,28 @@ pub fn start(client: Client) {
   actor.send(client, Start)
 }
 
+pub fn subscribe(
+  client: Client,
+  subscription_request: CreateEventSubscriptionRequest,
+) -> Result(Subject(Event), TwitchError) {
+  let state = actor.call(client, GetState(_), 1000)
+
+  use _ <- result.try(eventsub.create_eventsub_subscription(
+    state.api_client,
+    subscription_request,
+  ))
+
+  let mailbox = process.new_subject()
+
+  actor.send(client, Subscribe(subscription_request.subscription_type, mailbox))
+  Ok(mailbox)
+}
+
+pub fn mailbox(client: Client) -> Subject(WebSocketMessage) {
+  let state = actor.call(client, GetState, 1000)
+  state.mailbox
+}
+
 fn handle_message(message: Message, state: ClientState) {
   case message {
     GetState(state_mailbox) -> {
@@ -99,23 +121,6 @@ fn handle_message(message: Message, state: ClientState) {
     }
     Stop -> panic as "todo"
   }
-}
-
-pub fn subscribe(
-  client: Client,
-  subscription_request: CreateEventSubscriptionRequest,
-) -> Result(Subject(Event), TwitchError) {
-  let state = actor.call(client, GetState(_), 1000)
-
-  use _ <- result.try(eventsub.create_eventsub_subscription(
-    state.api_client,
-    subscription_request,
-  ))
-
-  let mailbox = process.new_subject()
-
-  actor.send(client, Subscribe(subscription_request.subscription_type, mailbox))
-  Ok(mailbox)
 }
 
 fn handle_websocket_message(state: ClientState, message: WebSocketMessage) {
