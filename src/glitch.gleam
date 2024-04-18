@@ -90,7 +90,7 @@ pub fn test_chat() {
 
 pub fn test_eventsub() {
   let mailbox = process.new_subject()
-  let eventsub = eventsub_client.new(new_api_client(), mailbox)
+  let assert Ok(eventsub) = eventsub_client.new(new_api_client(), mailbox)
   let _ = eventsub_client.start(eventsub)
 
   process.sleep_forever()

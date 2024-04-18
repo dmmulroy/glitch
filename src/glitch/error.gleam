@@ -5,6 +5,7 @@ import gleam/json.{type DecodeError}
 
 pub type TwitchError {
   AuthError(AuthError)
+  EventSubError(EventSubError)
   InvalidResponseType(expected: String, received: String)
   RequestError(Dynamic)
   ResponseDecodeError(DecodeError)
@@ -18,4 +19,8 @@ pub type AuthError {
   TokenFetcherFetchError(cause: TwitchError)
   TokenFetcherStartError
   ValidateTokenError(cause: TwitchError)
+}
+
+pub type EventSubError {
+  EventSubStartError
 }

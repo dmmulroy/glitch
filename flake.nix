@@ -15,10 +15,10 @@
       let pkgs' = inputs'.nixpkgs_master.legacyPackages.extend (self: super: {
           gleam = super.stdenv.mkDerivation rec {
           name = "gleam";
-          version = "1.1.0-rc3";
+          version = "1.1.0";
           src = super.fetchurl {
           url = "https://github.com/gleam-lang/gleam/releases/download/v${version}/gleam-v${version}-aarch64-apple-darwin.tar.gz";
-          sha256 = "sha256-3OEASdaMyOrVR94C96LyWmCn3rW0dVWlgXxBoRyLl3U=";
+          sha256 = "sha256-Lf0rvZeGpd0+RqX9d9Tz/eFAYXwmLJ1md/+3aNCc7kY=";
           };
           phases = [ "installPhase" ];
           installPhase = ''
