@@ -1,8 +1,8 @@
 import gleam/dict.{type Dict}
-import gleam/erlang/process.{type Subject}
+import gleam/erlang/process.{type Selector, type Subject}
 import gleam/function
 import gleam/io
-import gleam/otp/actor
+import gleam/otp/actor.{type StartError}
 import gleam/otp/supervisor
 import gleam/result
 import glitch/api/client.{type Client as ApiClient} as api_client
@@ -42,55 +42,65 @@ pub type Status {
 }
 
 pub fn new(
-  api_client: ApiClient,
-  websocket_message_mailbox: Subject(WebSocketMessage),
-) -> Result(Client, TwitchError) {
-  actor.start_spec(actor.Spec(
-    init: fn() {
-      let self: Subject(Message) = process.new_subject()
-      let child_subject_mailbox: Subject(WebSocketServer) =
-        process.new_subject()
+  api_client api_client: ApiClient,
+  websocket_mailbox parent_websocket_message_mailbox: Subject(WebSocketMessage),
+  parent_subject parent_subject: Subject(Client),
+) -> fn(Nil) -> Result(Client, StartError) {
+  fn(_) {
+    actor.start_spec(actor.Spec(
+      init: fn() {
+        // Allows parent to send messages to this process
+        let self = process.new_subject()
+        process.send(parent_subject, self)
 
-      let websocket_server =
-        supervisor.worker(fn(_) {
-          child_subject_mailbox
-          |> websocket_server.new(websocket_message_mailbox)
-          |> function.tap(result.map(_, websocket_server.start))
-        })
+        // Receives messages from parent
+        let selector: Selector(Message) =
+          process.selecting(process.new_selector(), self, function.identity)
 
-      let assert Ok(_) = supervisor.start(supervisor.add(_, websocket_server))
+        // Receive websocket_servers' subject from
+        let child_subject_mailbox = process.new_subject()
 
-      let assert Ok(child_subject) =
-        process.receive(child_subject_mailbox, 1000)
+        // Weebsocket server communicates to this process via this subject
+        let websocket_message_mailbox = process.new_subject()
 
-      let initial_state =
-        State(
-          api_client,
-          websocket_message_mailbox,
-          dict.new(),
-          Stopped,
-          child_subject,
-        )
+        // // Lets us send messages to the websocket_server
+        let start_websocket_server =
+          websocket_server.new(child_subject_mailbox, websocket_message_mailbox)
 
-      let selector =
-        process.selecting(process.new_selector(), self, function.identity)
+        let websocket_server_child_spec =
+          supervisor.worker(start_websocket_server)
 
-      let mailbox_selector =
-        process.selecting(
-          process.new_selector(),
-          websocket_message_mailbox,
-          WebSocketMessage,
-        )
+        let assert Ok(_supervisor_subject) =
+          supervisor.start(supervisor.add(_, websocket_server_child_spec))
 
-      actor.Ready(
-        initial_state,
-        process.merge_selector(selector, mailbox_selector),
-      )
-    },
-    init_timeout: 1000,
-    loop: handle_message,
-  ))
-  |> result.replace_error(EventSubError(EventSubStartError))
+        let assert Ok(websocket_server) =
+          process.receive(child_subject_mailbox, 1000)
+
+        let initial_state =
+          State(
+            api_client,
+            parent_websocket_message_mailbox,
+            dict.new(),
+            Stopped,
+            websocket_server,
+          )
+
+        let websocket_mailbox_selector =
+          process.selecting(
+            process.new_selector(),
+            websocket_message_mailbox,
+            WebSocketMessage,
+          )
+
+        let merged_selector =
+          process.merge_selector(selector, websocket_mailbox_selector)
+
+        actor.Ready(initial_state, merged_selector)
+      },
+      init_timeout: 1000,
+      loop: handle_message,
+    ))
+  }
 }
 
 pub fn start(client: Client) {
@@ -125,6 +135,7 @@ pub fn api_client(client: Client) -> api_client.Client {
 }
 
 fn handle_message(message: Message, state: ClientState) {
+  io.debug(message)
   case message {
     GetState(state_mailbox) -> {
       process.send(state_mailbox, state)
@@ -137,7 +148,7 @@ fn handle_message(message: Message, state: ClientState) {
     }
     WebSocketMessage(message) -> handle_websocket_message(state, message)
     Start -> {
-      process.send(state.websocket_server, websocket_server.Start)
+      websocket_server.start(state.websocket_server)
       actor.continue(State(..state, status: Running))
     }
     Stop -> panic as "todo"
@@ -145,8 +156,6 @@ fn handle_message(message: Message, state: ClientState) {
 }
 
 fn handle_websocket_message(state: ClientState, message: WebSocketMessage) {
-  io.println("handle_websocket_message")
-  io.debug(message)
   case message {
     websocket_message.Close -> {
       // TODO SHUTDOWN
@@ -162,6 +171,6 @@ fn handle_websocket_message(state: ClientState, message: WebSocketMessage) {
       Nil
     }
   }
-  // process.send(state.mailbox, message)
+
   actor.continue(state)
 }

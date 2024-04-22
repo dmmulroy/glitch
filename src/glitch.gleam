@@ -8,6 +8,7 @@ import glitch/api/client as api_client
 import glitch/auth/auth_provider
 import glitch/auth/token_fetcher
 import glitch/eventsub/client as eventsub_client
+import glitch/eventsub/websocket_server
 import glitch/types/access_token
 import glitch/types/scope
 
@@ -89,15 +90,21 @@ pub fn test_chat() {
 }
 
 pub fn test_eventsub() {
-  let mailbox = process.new_subject()
-  let assert Ok(eventsub) = eventsub_client.new(new_api_client(), mailbox)
-  let _ = eventsub_client.start(eventsub)
-
+  // let mailbox = process.new_subject()
+  // let assert Ok(eventsub) = eventsub_client.new(new_api_client(), mailbox)
+  // 
+  // let _ = eventsub_client.start(eventsub)
+  //
   process.sleep_forever()
 }
 
 pub fn main() {
-  // get_access_token()
-  // // let _ = test_chat()
+  // let assert Ok(server) =
+  //   websocket_server.new(process.new_subject(), process.new_subject())
+  // websocket_server.start(server)
+
+  // process.sleep_forever()
+  // // get_access_token()
+  // // // let _ = test_chat()
   test_eventsub()
 }

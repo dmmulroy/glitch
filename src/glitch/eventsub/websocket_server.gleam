@@ -26,7 +26,7 @@ pub type Status {
   Stopped
 }
 
-pub type Message {
+pub opaque type Message {
   Start
   Shutdown
 }
@@ -34,29 +34,32 @@ pub type Message {
 // Todo: Look into why we need https/wss
 const eventsub_uri = "https://eventsub.wss.twitch.tv/ws"
 
-pub fn new(
-  parent_subject,
-  websocket_message_mailbox,
-) -> Result(WebSocketServer, StartError) {
-  actor.start_spec(actor.Spec(
-    init: fn() {
-      let self = process.new_subject()
+pub type StartWebSockterServer =
+  fn(Nil) -> Result(WebSocketServer, StartError)
 
-      process.send(parent_subject, self)
+pub fn new(parent_subject, websocket_message_mailbox) -> StartWebSockterServer {
+  fn(_) {
+    actor.start_spec(actor.Spec(
+      init: fn() {
+        let self = process.new_subject()
 
-      let selector =
-        process.selecting(process.new_selector(), self, function.identity)
+        process.send(parent_subject, self)
 
-      let initial_state = State(websocket_message_mailbox, None, Stopped)
+        let selector =
+          process.selecting(process.new_selector(), self, function.identity)
 
-      actor.Ready(initial_state, selector)
-    },
-    init_timeout: 1000,
-    loop: handle_message,
-  ))
+        let initial_state = State(websocket_message_mailbox, None, Stopped)
+
+        actor.Ready(initial_state, selector)
+      },
+      init_timeout: 1000,
+      loop: handle_message,
+    ))
+  }
 }
 
 pub fn start(websocket_server: Subject(Message)) -> Nil {
+  io.println("websocket_server START")
   actor.send(websocket_server, Start)
 }
 
@@ -68,6 +71,7 @@ fn handle_message(message: Message, state: WebSockerServerState) {
 }
 
 fn handle_start(state: WebSockerServerState) {
+  io.println("websocket_server handle_start")
   let assert Ok(req) = request.to(eventsub_uri)
 
   let assert Ok(websocket_client_subject) =
