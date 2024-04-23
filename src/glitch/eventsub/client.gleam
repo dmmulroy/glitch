@@ -114,7 +114,8 @@ pub fn start(client: Client) {
 pub fn subscribe(
   client: Client,
   subscription_request: CreateEventSubscriptionRequest,
-) -> Result(Subject(Event), TwitchError) {
+  subscription_event_mailbox,
+) -> Result(Nil, TwitchError) {
   let state = actor.call(client, GetState(_), 1000)
 
   use _ <- result.try(eventsub.create_eventsub_subscription(
@@ -122,10 +123,15 @@ pub fn subscribe(
     subscription_request,
   ))
 
-  let mailbox = process.new_subject()
+  actor.send(
+    client,
+    Subscribe(
+      subscription_request.subscription_type,
+      subscription_event_mailbox,
+    ),
+  )
 
-  actor.send(client, Subscribe(subscription_request.subscription_type, mailbox))
-  Ok(mailbox)
+  Ok(Nil)
 }
 
 pub fn websocket_message_mailbox(client: Client) -> Subject(WebSocketMessage) {
@@ -145,7 +151,6 @@ pub fn api_client(client: Client) -> api_client.Client {
 }
 
 fn handle_message(message: Message, state: ClientState) {
-  io.debug(message)
   case message {
     GetState(state_mailbox) -> {
       process.send(state_mailbox, state)
@@ -169,18 +174,27 @@ fn handle_websocket_message(state: ClientState, message: WebSocketMessage) {
   case message {
     websocket_message.Close -> {
       // TODO SHUTDOWN
+      process.send(state.websocket_message_mailbox, message)
       actor.continue(state)
     }
     websocket_message.NotificationMessage(metadata, payload) -> {
-      state.subscriptions
-      |> dict.get(metadata.subscription_type)
-      |> result.map(process.send(_, payload.event))
-      |> result.unwrap_both
-      |> ignore
+      // process.send(state.websocket_message_mailbox, message)
+
+      io.println("")
+      io.println("eventsub client - notification message")
+      io.debug(payload)
+      io.println("")
+
+      let assert Ok(subject) =
+        dict.get(state.subscriptions, metadata.subscription_type)
+
+      process.send(subject, payload.event)
 
       actor.continue(state)
     }
     websocket_message.WelcomeMessage(_metadata, payload) -> {
+      process.send(state.websocket_message_mailbox, message)
+
       let session_id = payload.session.id
       actor.continue(State(..state, session_id: Some(session_id)))
     }
