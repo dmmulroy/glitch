@@ -5,3 +5,7 @@ pub fn compose(fun1: fn(a) -> b, fun2: fn(b) -> c) -> fn(a) -> c {
 pub fn constant(value: value) -> fn(anything) -> value {
   fn(_) { value }
 }
+
+pub fn ignore(_value: value) -> Nil {
+  Nil
+}

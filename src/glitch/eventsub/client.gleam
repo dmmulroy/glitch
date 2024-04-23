@@ -2,6 +2,7 @@ import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Selector, type Subject}
 import gleam/function
 import gleam/io
+import gleam/option.{type Option, None, Some}
 import gleam/otp/actor.{type StartError}
 import gleam/otp/supervisor
 import gleam/result
@@ -9,9 +10,10 @@ import glitch/api/client.{type Client as ApiClient} as api_client
 import glitch/api/eventsub.{
   type CreateEventSubscriptionRequest, CreateEventSubscriptionRequest,
 }
-import glitch/error.{type TwitchError, EventSubError, EventSubStartError}
+import glitch/error.{type TwitchError}
 import glitch/eventsub/websocket_message.{type WebSocketMessage}
 import glitch/eventsub/websocket_server.{type WebSocketServer}
+import glitch/extended/function_ext.{ignore}
 import glitch/types/event.{type Event}
 import glitch/types/subscription.{type SubscriptionType}
 
@@ -21,7 +23,8 @@ pub type Client =
 pub opaque type ClientState {
   State(
     api_client: ApiClient,
-    mailbox: Subject(WebSocketMessage),
+    websocket_message_mailbox: Subject(WebSocketMessage),
+    session_id: Option(String),
     subscriptions: Dict(SubscriptionType, Subject(Event)),
     status: Status,
     websocket_server: WebSocketServer,
@@ -80,6 +83,7 @@ pub fn new(
           State(
             api_client,
             parent_websocket_message_mailbox,
+            None,
             dict.new(),
             Stopped,
             websocket_server,
@@ -124,9 +128,15 @@ pub fn subscribe(
   Ok(mailbox)
 }
 
-pub fn mailbox(client: Client) -> Subject(WebSocketMessage) {
+pub fn websocket_message_mailbox(client: Client) -> Subject(WebSocketMessage) {
   let state = actor.call(client, GetState, 1000)
-  state.mailbox
+  state.websocket_message_mailbox
+}
+
+pub fn session_id(client: Client) -> Result(String, Nil) {
+  let state = actor.call(client, GetState, 1000)
+
+  option.to_result(state.session_id, Nil)
 }
 
 pub fn api_client(client: Client) -> api_client.Client {
@@ -159,18 +169,23 @@ fn handle_websocket_message(state: ClientState, message: WebSocketMessage) {
   case message {
     websocket_message.Close -> {
       // TODO SHUTDOWN
-      Nil
+      actor.continue(state)
     }
     websocket_message.NotificationMessage(metadata, payload) -> {
       state.subscriptions
       |> dict.get(metadata.subscription_type)
       |> result.map(process.send(_, payload.event))
       |> result.unwrap_both
+      |> ignore
+
+      actor.continue(state)
+    }
+    websocket_message.WelcomeMessage(_metadata, payload) -> {
+      let session_id = payload.session.id
+      actor.continue(State(..state, session_id: Some(session_id)))
     }
     _ -> {
-      Nil
+      actor.continue(state)
     }
   }
-
-  actor.continue(state)
 }
