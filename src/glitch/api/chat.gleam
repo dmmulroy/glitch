@@ -1,10 +1,10 @@
 import gleam/dynamic.{type Decoder}
+import gleam/json.{type DecodeError}
 import gleam/option.{type Option}
 import gleam/result
-import gleam/json.{type DecodeError}
-import glitch/api/client.{type Client}
 import glitch/api/api_request
 import glitch/api/api_response
+import glitch/api/client.{type Client}
 import glitch/error.{type TwitchError}
 import glitch/extended/json_ext
 
@@ -32,6 +32,8 @@ pub type SendMessageRequest {
     reply_parent_message_id: Option(String),
   )
 }
+
+pub const new_send_message_request = SendMessageRequest
 
 fn send_message_request_to_json(request: SendMessageRequest) -> String {
   json.object([
