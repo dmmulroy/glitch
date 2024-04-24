@@ -59,7 +59,6 @@ pub fn new(parent_subject, websocket_message_mailbox) -> StartWebSockterServer {
 }
 
 pub fn start(websocket_server: Subject(Message)) -> Nil {
-  io.println("websocket_server START")
   actor.send(websocket_server, Start)
 }
 
@@ -71,7 +70,6 @@ fn handle_message(message: Message, state: WebSockerServerState) {
 }
 
 fn handle_start(state: WebSockerServerState) {
-  io.println("websocket_server handle_start")
   let assert Ok(req) = request.to(eventsub_uri)
 
   let assert Ok(websocket_client_subject) =
@@ -81,7 +79,6 @@ fn handle_start(state: WebSockerServerState) {
       loop: fn(message, state, _conn) {
         case message {
           stratus.Text(message) -> {
-            io.debug(message)
             let decoded_message =
               websocket_message.from_json(message)
               |> result.unwrap(UnhandledMessage(message))

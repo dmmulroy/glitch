@@ -1,7 +1,6 @@
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Selector, type Subject}
 import gleam/function
-import gleam/io
 import gleam/option.{type Option, None, Some}
 import gleam/otp/actor.{type StartError}
 import gleam/otp/supervisor
@@ -13,7 +12,6 @@ import glitch/api/eventsub.{
 import glitch/error.{type TwitchError}
 import glitch/eventsub/websocket_message.{type WebSocketMessage}
 import glitch/eventsub/websocket_server.{type WebSocketServer}
-import glitch/extended/function_ext.{ignore}
 import glitch/types/event.{type Event}
 import glitch/types/subscription.{type SubscriptionType}
 
@@ -178,12 +176,7 @@ fn handle_websocket_message(state: ClientState, message: WebSocketMessage) {
       actor.continue(state)
     }
     websocket_message.NotificationMessage(metadata, payload) -> {
-      // process.send(state.websocket_message_mailbox, message)
-
-      io.println("")
-      io.println("eventsub client - notification message")
-      io.debug(payload)
-      io.println("")
+      process.send(state.websocket_message_mailbox, message)
 
       let assert Ok(subject) =
         dict.get(state.subscriptions, metadata.subscription_type)

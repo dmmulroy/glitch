@@ -7,8 +7,9 @@ import glitch/api/chat.{SendMessageRequest}
 import glitch/api/client as api_client
 import glitch/auth/auth_provider
 import glitch/auth/token_fetcher
-import glitch/eventsub/client as eventsub_client
-import glitch/eventsub/websocket_server
+
+// import glitch/eventsub/client as eventsub_client
+// import glitch/eventsub/websocket_server
 import glitch/types/access_token
 import glitch/types/scope
 
