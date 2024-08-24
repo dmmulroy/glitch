@@ -1,5 +1,5 @@
-import gleam/result
 import gleam/option.{type Option, None, Some}
+import gleam/result
 import glitch/api/auth.{type GetTokenRequest}
 import glitch/error.{
   type AuthError, type TwitchError, AccessTokenExpired, AuthError,

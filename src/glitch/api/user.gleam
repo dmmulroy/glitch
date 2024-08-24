@@ -1,15 +1,15 @@
 import gleam/dynamic.{type Decoder}
+import gleam/json.{type DecodeError, type Json}
 import gleam/list
 import gleam/option.{type Option}
 import gleam/result
 import gleam/uri.{type Uri}
-import gleam/json.{type DecodeError, type Json}
-import glitch/api/client.{type Client}
 import glitch/api/api_request
 import glitch/api/api_response
+import glitch/api/client.{type Client}
+import glitch/error.{type TwitchError}
 import glitch/extended/dynamic_ext
 import glitch/extended/json_ext
-import glitch/error.{type TwitchError}
 
 pub type User {
   User(

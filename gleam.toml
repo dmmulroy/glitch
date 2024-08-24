@@ -1,5 +1,6 @@
 name = "glitch"
 version = "0.0.6"
+gleam = ">= 0.32.0"
 
 # Fill out these fields if you intend to generate HTML documentation or publish
 # your project to the Hex package manager.
@@ -13,18 +14,18 @@ version = "0.0.6"
 # https://gleam.run/writing-gleam/gleam-toml/. 
 
 [dependencies]
-gleam_stdlib = "~> 0.34 or ~> 1.0"
+gleam_stdlib = "~> 0.40.0"
 logging = "~> 1.0"
-gleam_json = "~> 1.0"
-gleam_httpc = "~> 2.1"
-gleam_http = "~> 3.5"
+gleam_json = "~> 2.0"
+gleam_httpc = "~> 2.2"
+gleam_http = "~> 3.6"
 dot_env = "~> 0.2"
-gleam_otp = "~> 0.10"
-mist = "~> 1.0"
+gleam_otp = "~> 0.11"
+mist = "~> 2.0"
 gleam_erlang = "~> 0.25"
 shellout = "~> 1.6"
 prng = "~> 3.0"
-stratus = "~> 0.5"
+stratus = "~> 0.9"
 
 [dev-dependencies]
-gleeunit = "~> 1.0"
+gleeunit = "~> 1.2"

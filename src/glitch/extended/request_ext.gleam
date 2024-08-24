@@ -1,8 +1,8 @@
+import gleam/http.{type Header}
+import gleam/http/request.{type Request, Request}
 import gleam/list
 import gleam/option.{type Option}
 import gleam/string
-import gleam/http.{type Header}
-import gleam/http/request.{type Request, Request}
 
 pub fn merge_headers(
   request: Request(data),

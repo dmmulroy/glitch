@@ -1,26 +1,26 @@
 import gleam/bit_array
-import gleam/function
-import gleam/list
-import gleam/pair
-import gleam/string
-import gleam/uri.{type Uri, Uri}
-import gleam/option.{type Option, None, Some}
-import gleam/result
 import gleam/erlang/os
 import gleam/erlang/process.{type Subject}
+import gleam/function
+import gleam/list
+import gleam/option.{type Option, None, Some}
 import gleam/otp/actor
-import prng/random
-import prng/seed
-import shellout
-import glitch/auth/redirect_server
+import gleam/pair
+import gleam/result
+import gleam/string
+import gleam/uri.{type Uri, Uri}
 import glitch/api/auth
+import glitch/auth/redirect_server
 import glitch/error.{
   type AuthError, type TwitchError, AuthError, TokenFetcherFetchError,
   TokenFetcherStartError,
 }
+import glitch/extended/uri_ext
 import glitch/types/access_token.{type AccessToken}
 import glitch/types/scope.{type Scope}
-import glitch/extended/uri_ext
+import prng/random
+import prng/seed
+import shellout
 
 const base_authorization_uri = Uri(
   Some("https"),

@@ -1,8 +1,8 @@
+import gleam/http.{type Scheme}
 import gleam/list
 import gleam/option.{None, Some}
 import gleam/string
 import gleam/uri.{type Uri, Uri}
-import gleam/http.{type Scheme}
 
 const empty = Uri(
   scheme: None,

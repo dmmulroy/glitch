@@ -1,11 +1,11 @@
-import gleam/result
 import gleam/http.{type Header, Get, Post}
+import gleam/result
 import glitch/api/api
 import glitch/api/api_request.{type TwitchApiRequest}
 import glitch/api/api_response.{type TwitchApiResponse}
 import glitch/auth/auth_provider.{type AuthProvider}
-import glitch/types/access_token.{type AccessToken}
 import glitch/error.{type TwitchError}
+import glitch/types/access_token.{type AccessToken}
 
 pub opaque type Client {
   Client(auth_provider: AuthProvider)

@@ -1,14 +1,14 @@
 import gleam/bytes_builder
-import gleam/list
-import gleam/option.{type Option, None, Some}
-import gleam/result
-import gleam/uri.{type Uri}
+import gleam/erlang/process.{type Subject}
 import gleam/http.{Get}
 import gleam/http/request.{type Request, Request}
 import gleam/http/response.{type Response}
-import gleam/erlang/process.{type Subject}
-import gleam/otp/supervisor.{type Message as SupervisorMessage}
+import gleam/list
+import gleam/option.{type Option, None, Some}
 import gleam/otp/actor.{type StartError}
+import gleam/otp/supervisor.{type Message as SupervisorMessage}
+import gleam/result
+import gleam/uri.{type Uri}
 import mist.{type Connection, type ResponseData}
 
 pub opaque type RedirectServer {

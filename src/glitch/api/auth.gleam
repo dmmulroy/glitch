@@ -1,10 +1,10 @@
 import gleam/dynamic.{type Dynamic}
+import gleam/http.{Get, Post}
 import gleam/result
 import gleam/uri.{type Uri}
-import gleam/http.{Get, Post}
 import glitch/api/api
-import glitch/api/api_response
 import glitch/api/api_request
+import glitch/api/api_response
 import glitch/error.{type TwitchError, AuthError, InvalidGetTokenRequest}
 import glitch/types/access_token.{type AccessToken}
 import glitch/types/grant.{

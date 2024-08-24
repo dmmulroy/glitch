@@ -1,7 +1,7 @@
 import gleam/dynamic.{type Decoder, type Dynamic}
+import gleam/erlang
 import gleam/option.{type Option}
 import gleam/result
-import gleam/erlang
 import glitch/error.{type TwitchError, AuthError, InvalidAccessToken}
 import glitch/types/scope.{type Scope}
 

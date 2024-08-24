@@ -1,6 +1,6 @@
+import gleam/json.{type DecodeError, type Json}
 import gleam/option.{type Option}
 import gleam/uri.{type Uri}
-import gleam/json.{type DecodeError, type Json}
 
 pub type JsonDecoder(input, output) =
   fn(input) -> Result(output, DecodeError)

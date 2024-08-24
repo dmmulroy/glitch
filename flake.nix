@@ -12,27 +12,10 @@
       imports = [];
       systems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin" ];
       perSystem = { config, self', inputs', pkgs, system, ... }:
-      let pkgs' = inputs'.nixpkgs_master.legacyPackages.extend (self: super: {
-          gleam = super.stdenv.mkDerivation rec {
-          name = "gleam";
-          version = "1.1.0";
-          src = super.fetchurl {
-          url = "https://github.com/gleam-lang/gleam/releases/download/v${version}/gleam-v${version}-aarch64-apple-darwin.tar.gz";
-          sha256 = "sha256-Lf0rvZeGpd0+RqX9d9Tz/eFAYXwmLJ1md/+3aNCc7kY=";
-          };
-          phases = [ "installPhase" ];
-          installPhase = ''
-          mkdir -p $out/bin
-          tar -xvf $src -C $out/bin
-          chmod +x $out/bin/gleam
-          '';
-          };
-        });
-      in
-      {
+            {
         devShells = {
-          default = pkgs'.mkShell {
-            buildInputs = with pkgs'; [gleam erlang_26 rebar3 bun];
+          default = pkgs.mkShell {
+            buildInputs = with pkgs; [gleam erlang_27 rebar3 bun];
           };
         };
       };
